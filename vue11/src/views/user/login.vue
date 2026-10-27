@@ -36,11 +36,7 @@
               :prefix-icon="User"
               size="large"
               class="custom-input"
-            >
-              <template #prefix>
-                <el-icon class="text-gray-400"><User /></el-icon>
-              </template>
-            </el-input>
+            />
           </el-form-item>
 
           <!-- 密码输入 -->
@@ -53,11 +49,7 @@
               size="large"
               show-password
               class="custom-input"
-            >
-              <template #prefix>
-                <el-icon class="text-gray-400"><Lock /></el-icon>
-              </template>
-            </el-input>
+            />
           </el-form-item>
         
 

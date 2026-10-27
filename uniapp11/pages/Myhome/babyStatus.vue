@@ -193,7 +193,7 @@ onMounted(() => {
 
 <style scoped>
 .baby-status-page { min-height: 100vh; background-color: #f5f5f5; padding-bottom: 40rpx; }
-.page-header { display: flex; justify-content: space-between; align-items: center; padding: 30rpx; background-color: #fff; position: sticky; top: 0; z-index: 10; }
+.page-header { display: flex; justify-content: space-between; align-items: center; padding: 30rpx; padding-top: calc(var(--status-bar-height) + 30rpx); background-color: #fff; position: sticky; top: 0; z-index: 10; }
 .header-back { font-size: 28rpx; color: #333; }
 .header-title { font-size: 36rpx; font-weight: bold; color: #333; }
 .header-save { font-size: 28rpx; color: #ff6b6b; font-weight: bold; }

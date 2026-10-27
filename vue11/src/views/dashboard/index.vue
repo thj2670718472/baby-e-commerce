@@ -94,27 +94,26 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Money, ShoppingCart, Goods, User, Collection, Grid, Check, Avatar } from '@element-plus/icons-vue'
-import axios from 'axios'
+import request from '@/utils/request'
 
 const statistics = ref({
-  totalSales: 128900,
-  totalOrders: 1234,
-  totalProducts: 567,
-  totalUsers: 3456,
-  productTypes: 128,
-  productCategories: 24,
-  completedOrders: 987,
-  babyCount: 856
+  totalSales: 0,
+  totalOrders: 0,
+  totalProducts: 0,
+  totalUsers: 0,
+  productTypes: 0,
+  productCategories: 0,
+  completedOrders: 0,
+  babyCount: 0
 })
 
 const fetchStatistics = async () => {
   try {
-    console.log('开始获取统计数据...')
-    // 这里应该调用真实的API获取统计数据
-    // 暂时使用模拟数据
-    const response = await axios.get('/api/dashboard/statistics')
-    console.log('获取统计数据成功:', response.data)
-    statistics.value = response.data
+    const response = await request.get('/dashboard/statistics')
+    const data = response && response.code === 200 ? response.data : response
+    if (data && typeof data === 'object') {
+      statistics.value = { ...statistics.value, ...data }
+    }
   } catch (error) {
     console.error('获取统计数据失败:', error)
   }

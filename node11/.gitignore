@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.local
+*.log
+
+# 用户上传的运行时文件不入库（演示用的 goods / points 图片需要提交）
+public/uploads/avatars/*
+public/uploads/chat/*
+!public/uploads/avatars/.gitkeep
+!public/uploads/chat/.gitkeep
+
+.DS_Store

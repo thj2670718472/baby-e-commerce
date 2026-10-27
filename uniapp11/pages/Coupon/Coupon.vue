@@ -91,7 +91,7 @@ const handleDraw = async () => {
   if (!user) {
     uni.showModal({
       title: '提示', content: '请先登录',
-      success: (res) => { if (res.confirm) uni.navigateTo({ url: '/pages/Index/Index' }) }
+      success: (res) => { if (res.confirm) uni.navigateTo({ url: '/pages/Login/Login' }) }
     })
     return
   }

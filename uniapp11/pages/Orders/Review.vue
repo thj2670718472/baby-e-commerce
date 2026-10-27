@@ -145,6 +145,9 @@ const uploadImages = (filePaths) => {
       url: BASE_URL + '/upload/image',
       filePath: filePath,
       name: 'file',
+      header: {
+        Authorization: `Bearer ${uni.getStorageSync('token') || ''}`
+      },
       success: (res) => {
         const data = JSON.parse(res.data)
         if (data.code === 200) {

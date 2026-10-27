@@ -24,7 +24,7 @@
 			</view>
 		</view>
 		
-		<scroll-view class="order-list" scroll-y :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="onRefresh">
+		<scroll-view class="order-list" scroll-y :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="onRefresh" @scrolltolower="loadMoreOrders">
 			<view v-if="loading" class="loading-container">
 				<text>加载中...</text>
 			</view>
@@ -90,6 +90,11 @@
 					</view>
 				</view>
 			</view>
+
+			<view v-if="filteredOrders.length > 0 && !loading" class="load-more" style="text-align: center; padding: 20rpx 0;">
+				<text v-if="loadingMore" style="font-size: 24rpx; color: #999;">加载中...</text>
+				<text v-else-if="!hasMore" style="font-size: 24rpx; color: #999;">没有更多订单了</text>
+			</view>
 		</scroll-view>
 		
 		<view class="modal" v-if="returnModalVisible" @click="closeReturnModal">
@@ -120,14 +125,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onReachBottom } from '@dcloudio/uni-app'
 import { 
 	getOrderList, 
 	cancelOrder as apiCancelOrder, 
 	receiveOrder as apiReceiveOrder, 
 	applyReturn as apiApplyReturn,
 	deleteOrder as apiDeleteOrder,
-	updateOrderStatus,
+	payOrder as apiPayOrder,
 	BASE_URL 
 } from '../../api/index.js'
 
@@ -136,6 +141,10 @@ const loading = ref(false)
 const refreshing = ref(false)
 const submitting = ref(false)
 const currentStatus = ref('')
+const PAGE_SIZE = 10
+const page = ref(1)
+const hasMore = ref(true)
+const loadingMore = ref(false)
 const returnModalVisible = ref(false)
 const returnForm = ref({ orderId: null, orderNo: '', reason: '' })
 const currentUser = ref(null)
@@ -185,7 +194,11 @@ const getStatusClass = (status) => {
 	return map[status] || ''
 }
 
-const changeStatus = (status) => { currentStatus.value = status }
+const changeStatus = (status) => {
+	if (currentStatus.value === status) return
+	currentStatus.value = status
+	loadOrderList()
+}
 
 const getCurrentUser = () => {
 	try {
@@ -195,20 +208,40 @@ const getCurrentUser = () => {
 	} catch (e) { return null }
 }
 
-const loadOrderList = async () => {
+const loadOrderList = async (reset = true) => {
 	const user = getCurrentUser()
 	if (!user) { orderList.value = []; return }
 	currentUser.value = user
-	loading.value = true
+	if (reset) {
+		page.value = 1
+		loading.value = true
+	} else {
+		if (!hasMore.value || loadingMore.value) return
+		loadingMore.value = true
+	}
 	try {
-		const res = await getOrderList(user.id)
-		if (res.code === 200) orderList.value = res.data || []
+		const params = { page: page.value, pageSize: PAGE_SIZE }
+		if (currentStatus.value) params.status = currentStatus.value
+		const res = await getOrderList(user.id, params)
+		if (res.code === 200) {
+			const data = res.data || {}
+			const list = data.list || []
+			orderList.value = reset ? list : [...orderList.value, ...list]
+			hasMore.value = page.value < (data.totalPages || 1)
+		}
 	} catch (error) {
 		console.error('加载订单失败:', error)
 	} finally {
 		loading.value = false
 		refreshing.value = false
+		loadingMore.value = false
 	}
+}
+
+const loadMoreOrders = () => {
+	if (!hasMore.value || loading.value) return
+	page.value += 1
+	loadOrderList(false)
 }
 
 const onRefresh = () => { refreshing.value = true; loadOrderList() }
@@ -245,7 +278,7 @@ const payOrder = async (order) => {
 		success: async (res) => {
 			if (res.confirm) {
 				uni.showLoading({ title: '支付中...' })
-				const result = await updateOrderStatus(order.id, '已付款')
+				const result = await apiPayOrder(order.id)
 				uni.hideLoading()
 				if (result.code === 200) { 
 					uni.showToast({ title: '支付成功', icon: 'success' })
@@ -332,22 +365,23 @@ const goToReview = (order) => {
 }
 
 const buyAgain = (order) => {
-	uni.switchTab({ url: '/pages/Like/Like' })
+	uni.switchTab({ url: '/pages/Home/Home' })
 }
 
-const goShopping = () => uni.switchTab({ url: '/pages/Like/Like' })
+const goShopping = () => uni.switchTab({ url: '/pages/Home/Home' })
 
 const navigateBack = () => {
 	const pages = getCurrentPages()
 	if (pages.length > 1) {
 		uni.navigateBack()
 	} else {
-		uni.switchTab({ url: '/pages/Like/Like' })
+		uni.switchTab({ url: '/pages/Home/Home' })
 	}
 }
 
 onShow(() => loadOrderList())
 onMounted(() => loadOrderList())
+onReachBottom(loadMoreOrders)
 </script>
 
 <style scoped>

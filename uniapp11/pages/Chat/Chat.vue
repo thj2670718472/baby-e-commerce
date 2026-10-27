@@ -83,7 +83,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { getChatSession, getChatMessages, uploadChatImage, BASE_URL, getUserList } from '../../api/index.js'
+import { getChatSession, getChatMessages, uploadChatImage, getAdminInfo, BASE_URL } from '../../api/index.js'
 
 const sessionId = ref(null)
 const messages = ref([])
@@ -96,10 +96,11 @@ const pendingImagePath = ref('')
 const wsConnected = ref(false)
 
 // 管理员头像
-const adminAvatar = ref('/static/客服.png')
+const adminAvatar = ref('/static/babycity-icon.png')
 
 // ==================== [用户] WebSocket 连接 ====================
-const WS_URL = 'ws://localhost:3000/ws/chat'
+// 跟随接口地址，真机调试时无需再改这里
+const WS_URL = BASE_URL.replace(/^http/i, 'ws') + '/ws/chat'
 
 const connectWebSocket = () => {
   uni.connectSocket({
@@ -115,7 +116,8 @@ const connectWebSocket = () => {
         type: 'auth',
         userId: userInfo.value.id,
         userName: userInfo.value.username,
-        role: 'user'
+        role: 'user',
+        token: uni.getStorageSync('token') || ''
       })
     })
   })
@@ -186,18 +188,15 @@ const connectWebSocket = () => {
 // 加载管理员头像
 const loadAdminAvatar = async () => {
   try {
-    const res = await getUserList()
-    if (res.code === 200) {
-      const users = res.data || []
-      const adminUser = users.find(u => u.username === 'admin')
-      if (adminUser && adminUser.avatar) {
-        if (adminUser.avatar.startsWith('http')) {
-          adminAvatar.value = adminUser.avatar
-        } else if (adminUser.avatar.startsWith('/uploads/')) {
-          adminAvatar.value = BASE_URL + adminUser.avatar
-        } else {
-          adminAvatar.value = BASE_URL + adminUser.avatar
-        }
+    const res = await getAdminInfo()
+    if (res.code === 200 && res.data && res.data.avatar) {
+      const avatar = res.data.avatar
+      if (avatar.startsWith('http') || avatar.startsWith('data:')) {
+        adminAvatar.value = avatar
+      } else if (avatar.startsWith('/uploads/')) {
+        adminAvatar.value = BASE_URL + avatar
+      } else {
+        adminAvatar.value = avatar
       }
     }
   } catch (error) {
@@ -206,15 +205,20 @@ const loadAdminAvatar = async () => {
 }
 
 const onAdminAvatarError = () => {
-  adminAvatar.value = '/static/客服.png'
+  adminAvatar.value = '/static/babycity-icon.png'
 }
 
-const onUserAvatarError = () => {}
+const userAvatarFallback = ref(false)
+const onUserAvatarError = () => {
+  userAvatarFallback.value = true
+}
 
 const userAvatar = computed(() => {
-  if (!userInfo.value.avatar) return '/static/人物.png'
-  if (userInfo.value.avatar.startsWith('http')) return userInfo.value.avatar
-  if (userInfo.value.avatar.startsWith('/uploads/')) return BASE_URL + userInfo.value.avatar
+  const avatar = userInfo.value.avatar
+  if (userAvatarFallback.value || !avatar) return '/static/人物.png'
+  if (avatar.startsWith('http')) return avatar
+  if (avatar.startsWith('/uploads/')) return BASE_URL + avatar
+  if (avatar.startsWith('/')) return avatar
   return '/static/人物.png'
 })
 
@@ -394,7 +398,7 @@ onMounted(() => {
   } else {
     uni.showToast({ title: '请先登录', icon: 'none' })
     setTimeout(() => {
-      uni.navigateTo({ url: '/pages/Index/Index' })
+      uni.navigateTo({ url: '/pages/Login/Login' })
     }, 1500)
   }
 })
@@ -406,7 +410,7 @@ onUnmounted(() => {
 
 <style scoped>
 .chat-page { display: flex; flex-direction: column; height: 100vh; background-color: #f5f5f5; position: relative; }
-.page-header { display: flex; justify-content: space-between; align-items: center; padding: 20rpx 30rpx; background-color: #fff; border-bottom: 1rpx solid #eee; flex-shrink: 0; }
+.page-header { display: flex; justify-content: space-between; align-items: center; padding: 20rpx 30rpx; padding-top: calc(var(--status-bar-height) + 20rpx); background-color: #fff; border-bottom: 1rpx solid #eee; flex-shrink: 0; }
 .header-back { font-size: 28rpx; color: #333; }
 .header-title { font-size: 36rpx; font-weight: bold; }
 .header-placeholder { width: 60rpx; }

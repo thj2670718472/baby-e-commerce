@@ -54,7 +54,7 @@ const formatPrice = (price) => Number(price).toFixed(2)
 
 const getDisplayPrice = (price) => {
 	if (discountInfo.value?.isActive) {
-		return formatPrice(price * 0.7)
+		return formatPrice(price * discountInfo.value.discountRate)
 	}
 	return formatPrice(price)
 }
@@ -111,7 +111,9 @@ const goToDetail = (goodsId) => {
 }
 
 const buyNow = (item) => {
-	const actualPrice = discountInfo.value?.isActive ? item.goodsPrice * 0.7 : item.goodsPrice
+	const actualPrice = discountInfo.value?.isActive
+		? item.goodsPrice * discountInfo.value.discountRate
+		: item.goodsPrice
 	
 	const goodsData = [{
 		goodsId: item.goodsId,
@@ -148,7 +150,7 @@ const handleRemoveFavorite = (item) => {
 }
 
 const goShopping = () => {
-	uni.switchTab({ url: '/pages/Like/Like' })
+	uni.switchTab({ url: '/pages/Home/Home' })
 }
 
 const navigateBack = () => uni.navigateBack()

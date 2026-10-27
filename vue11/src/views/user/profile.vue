@@ -55,9 +55,10 @@ import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import userAPI from '@/api/user'
-import axios from 'axios'
+import service from '@/utils/request'
 
-const BASE_URL = 'http://localhost:3000'
+// 静态资源地址，可通过环境变量覆盖
+const BASE_URL = import.meta.env.VITE_FILE_BASE_URL || 'http://localhost:3000'
 
 const formData = ref({
   username: '',
@@ -74,7 +75,7 @@ const isAdmin = computed(() => {
   if (userStr) {
     try {
       const user = JSON.parse(userStr)
-      return user.username === 'admin'
+      return user.role === 'admin'
     } catch (e) {
       console.error('解析用户信息失败:', e)
       return false
@@ -114,18 +115,14 @@ const handleAvatarUpload = async ({ file }) => {
   formDataUpload.append('file', file)
   
   try {
-    const res = await axios.post(BASE_URL + '/upload/image', formDataUpload, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-    
-    if (res.data.code === 200) {
+    const res = await service.post('/upload/image', formDataUpload)
+
+    if (res.code === 200) {
       // 上传成功，更新本地头像地址
-      formData.value.avatar = res.data.data.url
+      formData.value.avatar = res.data.url
       ElMessage.success('头像上传成功')
     } else {
-      ElMessage.error(res.data.message || '头像上传失败')
+      ElMessage.error(res.message || '头像上传失败')
     }
   } catch (error) {
     console.error('头像上传失败:', error)

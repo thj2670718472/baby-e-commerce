@@ -51,6 +51,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { aiChat, BASE_URL } from '../../api/index.js'
 
 const messages = ref([])
@@ -98,6 +99,20 @@ const sendMessage = async () => {
     scrollToBottom()
   }
 }
+
+// AI 助手需要登录后才能使用
+onLoad(() => {
+  if (!getCurrentUser()) {
+    uni.showModal({
+      title: '提示',
+      content: '登录后才能使用 AI 育儿助手',
+      showCancel: false,
+      success: () => {
+        uni.navigateTo({ url: '/pages/Login/Login' })
+      }
+    })
+  }
+})
 
 const sendQuick = (q) => { inputText.value = q; sendMessage() }
 

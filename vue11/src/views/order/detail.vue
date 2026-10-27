@@ -221,7 +221,7 @@ export default {
       if (userStr) {
         try {
           const user = JSON.parse(userStr)
-          return user.username === 'admin'
+          return user.role === 'admin'
         } catch (e) {
           return false
         }

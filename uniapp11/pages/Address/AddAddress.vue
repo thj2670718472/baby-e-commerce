@@ -224,6 +224,7 @@ onMounted(() => {
 	justify-content: space-between;
 	align-items: center;
 	padding: 30rpx;
+	padding-top: calc(var(--status-bar-height) + 30rpx);
 	background-color: #ffffff;
 	position: sticky;
 	top: 0;

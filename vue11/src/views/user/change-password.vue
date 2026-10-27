@@ -121,8 +121,10 @@ const handleSubmit = async () => {
     
     if (res && res.code === 200) {
       ElMessage.success('密码修改成功，请重新登录')
-      // 清除本地存储的用户信息
+      // 清除本地存储的用户信息与登录凭证
       sessionStorage.removeItem('user')
+      sessionStorage.removeItem('token')
+      localStorage.removeItem('token')
       // 跳转到登录页面
       setTimeout(() => {
         router.push('/login')

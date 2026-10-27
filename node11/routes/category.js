@@ -3,6 +3,7 @@ var router = express.Router();
 var categoryDal=require('../db/categorydal');
 
 var responseHelper=require('../utils/responseHelper');
+const { requireAdmin } = require('../middleware/auth');
 
 /* GET category listing. */
 router.get('/', async function(req, res, next) {
@@ -39,8 +40,8 @@ router.get('/:id', async function(req, res, next) {
 });
 
 /* POST add category. */
-router.post('/', async function(req, res, next) {
-  model={
+router.post('/', requireAdmin, async function(req, res, next) {
+  const model={
     name:req.body.name,
     sort:req.body.sort,
     status:req.body.status
@@ -64,8 +65,8 @@ router.post('/', async function(req, res, next) {
 });
 
 /* PUT update category. */
-router.put('/:id', async function(req, res, next) {
-  model={
+router.put('/:id', requireAdmin, async function(req, res, next) {
+  const model={
     id:req.params.id,
     name:req.body.name,
     sort:req.body.sort,
@@ -90,7 +91,7 @@ router.put('/:id', async function(req, res, next) {
 });
 
 /* DELETE delete category. */
-router.delete('/:id', async function(req, res, next) {
+router.delete('/:id', requireAdmin, async function(req, res, next) {
   let result=await categoryDal.deleteCategory(req.params.id);
   if(result){
     responseHelper.success(res,result,"删除分类成功");

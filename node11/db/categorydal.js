@@ -28,21 +28,45 @@ function categorydal(){
         return await category.destroy({where:{id:id}});
     }
     this.updateCategory=async function(model) {
-        // 检查分类名称是否重复（排除当前分类）
-        const existingCategory = await category.findOne({where:{name:model.name, id:{$ne:model.id}}});
-        if (existingCategory) {
-            throw new Error('分类名称已存在');
+        const transaction = await category.sequelize.transaction();
+        try {
+            const current = await category.findByPk(model.id, {transaction});
+            if (!current) throw new Error('分类不存在');
+
+            // 检查分类名称是否重复（排除当前分类）
+            const existingCategory = await category.findOne({
+                where:{name:model.name},
+                transaction
+            });
+            if (existingCategory && String(existingCategory.id) !== String(model.id)) {
+                throw new Error('分类名称已存在');
+            }
+
+            const oldName = current.name;
+            const result = await category.update(model,{where:{id:model.id},transaction});
+
+            // 商品以分类名称关联，重命名时同步更新
+            if (model.name && oldName !== model.name) {
+                await goods.update(
+                    {category: model.name},
+                    {where:{category: oldName}, transaction}
+                );
+            }
+
+            // 如果分类被禁用，将该分类下的所有商品下架
+            if (model.status === false) {
+                await goods.update(
+                    {status: false},
+                    {where:{category: model.name}, transaction}
+                );
+            }
+
+            await transaction.commit();
+            return result;
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
         }
-        
-        // 执行分类更新
-        const result = await category.update(model,{where:{id:model.id}});
-        
-        // 如果分类被禁用，将该分类下的所有商品下架
-        if (model.status === false) {
-            await goods.update({status: false},{where:{category: model.name}});
-        }
-        
-        return result;
     }
     this.getCategoryByName=async function(name) {
         return await category.findOne({where:{name:name}});

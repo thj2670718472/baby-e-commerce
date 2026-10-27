@@ -8,9 +8,15 @@ class UserAPI extends BaseAPI {
   // 登录
   async login(data) {
     try {
-      const res = await this.get("/login", data);
+      // 使用 POST，避免密码出现在 URL 与访问日志中
+      const res = await this.post("/login", data);
       if (res.code === 200) {
         //ElMessage.success("登录成功");
+        // 保存登录 token
+        const token = res.token || (res.data && res.data.token);
+        if (token) {
+          sessionStorage.setItem("token", token);
+        }
         // 保存当前用户
         if (res.data) {
           // 确保存储的是对象，不是字符串

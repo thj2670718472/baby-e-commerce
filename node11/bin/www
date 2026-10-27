@@ -7,12 +7,13 @@
 var app = require('../app');
 var debug = require('debug')('nodeapi:server');
 var http = require('http');
+var config = require('../utils/config');
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort('3000');
+var port = normalizePort(String(config.port));
 app.set('port', port);
 
 /**
@@ -25,13 +26,32 @@ var server = http.createServer(app);
 const { setupWebSocket } = require('../ws/chat');
 setupWebSocket(server);
 
+// 待付款订单超时自动释放（默认 15 分钟，可用 ORDER_TIMEOUT_MINUTES 调整）
+const { startOrderTimeoutJob, TIMEOUT_MINUTES } = require('../utils/orderJob');
+const { startCouponExpiryJob } = require('../utils/couponJob');
+const { startAutoReceiveJob, AUTO_CONFIRM_DAYS } = require('../utils/autoReceiveJob');
+const { startUploadCleanupJob, RETENTION_DAYS } = require('../utils/uploadCleanupJob');
+
 /**
  * Listen on provided port, on all network interfaces.
  */
 
 server.listen(port, '0.0.0.0', function() {
   console.log('Server running on http://localhost:' + port);
-  console.log('局域网地址: http://192.168.0.158:' + port);
+  // 输出真实的局域网地址，方便真机调试时填写到 uniapp 的 VITE_API_BASE
+  const lanAddress = getLanAddress();
+  if (lanAddress) {
+    console.log('局域网地址: http://' + lanAddress + ':' + port);
+  }
+
+  startOrderTimeoutJob();
+  startCouponExpiryJob();
+  startAutoReceiveJob();
+  startUploadCleanupJob();
+  console.log(`订单超时释放任务已启动（${TIMEOUT_MINUTES} 分钟未支付自动取消）`);
+  console.log('优惠券过期检查任务已启动（每小时）');
+  console.log(`自动确认收货任务已启动（发货后 ${AUTO_CONFIRM_DAYS} 天，每小时检查）`);
+  console.log(`聊天图片清理任务已启动（保留 ${RETENTION_DAYS} 天，每 6 小时检查）`);
 });
 server.on('error', onError);
 server.on('listening', onListening);
@@ -39,6 +59,19 @@ server.on('listening', onListening);
 /**
  * Normalize a port into a number, string, or false.
  */
+
+function getLanAddress() {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const item of interfaces[name] || []) {
+      if (item.family === 'IPv4' && !item.internal) {
+        return item.address;
+      }
+    }
+  }
+  return '';
+}
 
 function normalizePort(val) {
   var port = parseInt(val, 10);

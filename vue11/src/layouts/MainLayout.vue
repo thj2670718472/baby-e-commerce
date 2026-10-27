@@ -52,6 +52,21 @@
             <el-icon><Reading /></el-icon>
             <span>婴儿培养</span>
           </el-menu-item>
+
+          <el-menu-item index="/main/points">
+            <el-icon><Coin /></el-icon>
+            <span>积分商城</span>
+          </el-menu-item>
+
+          <el-menu-item index="/main/coupon">
+            <el-icon><Ticket /></el-icon>
+            <span>优惠券管理</span>
+          </el-menu-item>
+
+          <el-menu-item index="/main/seckill">
+            <el-icon><AlarmClock /></el-icon>
+            <span>秒杀管理</span>
+          </el-menu-item>
         </template>
         
         <!-- 普通用户可见的菜单 -->
@@ -129,7 +144,10 @@ import {
   Expand,
   Fold,
   ChatDotSquare,
-  Reading
+  Reading,
+  Coin,
+  AlarmClock,
+  Ticket
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -163,7 +181,7 @@ const isAdmin = computed(() => {
   if (userStr) {
     try {
       const user = JSON.parse(userStr)
-      return user.username === 'admin'
+      return user.role === 'admin'
     } catch (e) {
       console.error('解析用户信息失败:', e)
       return false
@@ -200,6 +218,8 @@ const handleLogout = () => {
     type: 'info'
   }).then(() => {
     sessionStorage.removeItem('user')
+    sessionStorage.removeItem('token')
+    localStorage.removeItem('token')
     router.push('/login')
   }).catch(() => {})
 }

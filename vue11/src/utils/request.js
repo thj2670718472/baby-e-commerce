@@ -70,14 +70,13 @@ const generateRequestKey = (config) => {
 service.interceptors.request.use(
   (config) => {
     console.log("完整请求URL:", config.baseURL + config.url);
-    
-    // 从localStorage获取token
-    // const token =
-    //   localStorage.getItem("token") || sessionStorage.getItem("token");
-    // // 添加token
-    // if (token) {
-    //   config.headers["Authorization"] = `Bearer ${token}`;
-    // }
+
+    // 登录成功后后端会下发 token，统一附加到请求头
+    const token =
+      sessionStorage.getItem("token") || localStorage.getItem("token");
+    if (token) {
+      config.headers["Authorization"] = `Bearer ${token}`;
+    }
     
     // 添加时间戳防止缓存（对GET请求）- 只对GET请求添加
     if (config.method === "get") {
@@ -129,8 +128,9 @@ service.interceptors.response.use(
     const res = response.data;
     
     // 根据后端返回的code进行处理
-    // 假设后端返回格式：{ code: 200, data: {}, message: '成功' }
-    if (res.code && res.code !== 200) {
+    // 后端格式：{ code: 200, data: {}, message: '成功' }
+    // 用 !== undefined 判断：code 为 0 或空串时也必须走错误分支
+    if (res && res.code !== undefined && res.code !== 200) {
       handleBusinessError(res.code, res.message);
       return Promise.reject(new Error(res.message || "请求失败"));
     }
@@ -169,14 +169,16 @@ service.interceptors.response.use(
 function handleBusinessError(code, message) {
   switch (code) {
     case 401:
-      //handleUnauthorized()
-      showMessage("登录已过期，请重新登录", "warning");
+      handleUnauthorized()
       break;
     case 403:
       showMessage("没有权限访问", "warning");
       break;
     case 404:
       showMessage("请求的资源不存在", "warning");
+      break;
+    case 429:
+      showMessage(message || "请求过于频繁，请稍后再试", "warning");
       break;
     case 500:
       showMessage("服务器内部错误", "error");
@@ -189,21 +191,23 @@ function handleBusinessError(code, message) {
 // HTTP错误处理
 function handleHttpError(error) {
   const status = error.response?.status;
-  const message = error.message;
-  
+  const message = error.response?.data?.message || error.message;
+
   switch (status) {
     case 400:
       showMessage("请求错误", "error");
       break;
     case 401:
-      //handleUnauthorized()
-      showMessage("登录已过期", "warning");
+      handleUnauthorized()
       break;
     case 403:
       showMessage("拒绝访问", "warning");
       break;
     case 404:
       showMessage("请求地址不存在", "warning");
+      break;
+    case 429:
+      showMessage(message || "请求过于频繁，请稍后再试", "warning");
       break;
     case 500:
       showMessage("服务器内部错误", "error");
@@ -225,21 +229,18 @@ function handleHttpError(error) {
   }
 }
 
-// 处理未授权
-// function handleUnauthorized() {
-//   // 清除用户信息
-//   localStorage.removeItem('token')
-//   sessionStorage.removeItem('token')
-//   localStorage.removeItem('userInfo')
-//   sessionStorage.removeItem('userInfo')
-//   // 跳转到登录页
-//   const currentRoute = router.currentRoute.value
-//   if (currentRoute.path !== '/login') {
-//     router.push({
-//       path: '/login',
-//       query: { redirect: currentRoute.fullPath }
-//     })
-//   }
-// }
+// 处理未授权：清空登录态并回到登录页
+function handleUnauthorized() {
+  localStorage.removeItem('token')
+  sessionStorage.removeItem('token')
+  localStorage.removeItem('userInfo')
+  sessionStorage.removeItem('user')
+  showMessage('登录已过期，请重新登录', 'warning')
+
+  if (!window.location.pathname.startsWith('/login')) {
+    const redirect = encodeURIComponent(window.location.pathname + window.location.search)
+    window.location.href = `/login?redirect=${redirect}`
+  }
+}
 
 export default service;

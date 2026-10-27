@@ -259,6 +259,7 @@ const submitOrder = async () => {
 		orderTime: new Date().toISOString(),
 		address: `${selectedAddress.value.province}${selectedAddress.value.city}${selectedAddress.value.district}${selectedAddress.value.detail}`,
 		phone: selectedAddress.value.phone,
+		cartIds: goodsList.value.map(item => item.cartId).filter(Boolean),
 		goods: goodsList.value.map(item => ({
 			goodsId: item.goodsId,
 			goodsName: item.name,

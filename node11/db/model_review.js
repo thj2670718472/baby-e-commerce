@@ -61,6 +61,11 @@ module.exports = function(sequelize, DataTypes) {
     }
   }, {
     tableName: 'tb_review',
-    timestamps: false
+    timestamps: false,
+    indexes: [{
+      name: 'uq_review_order_goods_user',
+      unique: true,
+      fields: ['orderId', 'goodsId', 'userId']
+    }]
   });
 };

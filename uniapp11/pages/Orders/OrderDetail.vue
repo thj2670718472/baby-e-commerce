@@ -124,7 +124,7 @@ import {
 	getOrderDetail, 
 	cancelOrder as apiCancelOrder, 
 	receiveOrder as apiReceiveOrder,
-	updateOrderStatus,
+	payOrder as apiPayOrder,
 	BASE_URL 
 } from '../../api/index.js'
 
@@ -211,7 +211,7 @@ const payOrder = async () => {
 	})
 	if (res.confirm) {
 		uni.showLoading({ title: '支付中...' })
-		const result = await updateOrderStatus(orderId.value, '已付款')
+		const result = await apiPayOrder(orderId.value)
 		uni.hideLoading()
 		if (result.code === 200) {
 			uni.showToast({ title: '支付成功', icon: 'success' })
@@ -261,7 +261,7 @@ const applyReturn = () => {
 	setTimeout(() => { uni.$emit('applyReturn', orderId.value) }, 100)
 }
 
-const buyAgain = () => { uni.switchTab({ url: '/pages/Like/Like' }) }
+const buyAgain = () => { uni.switchTab({ url: '/pages/Home/Home' }) }
 
 
 const navigateBack = () => { uni.navigateBack() }

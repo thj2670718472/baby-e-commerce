@@ -169,6 +169,7 @@ const handleSubmit = () => {
   const checkedItems = cartList.value.filter(item => item.checked)
   if (checkedItems.length === 0) { uni.showToast({ title: '请选择商品', icon: 'none' }); return }
   const goodsData = checkedItems.map(item => ({
+    cartId: item.id,
     goodsId: item.goodsId,
     name: item.goodsName,
     price: discountInfo.value?.isActive ? (item.price * discountInfo.value.discountRate).toFixed(2) : item.price,
@@ -179,7 +180,7 @@ const handleSubmit = () => {
 }
 
 const goDetail = (goodsId) => { uni.navigateTo({ url: `/pages/GoodsDetail/GoodsDetail?id=${goodsId}` }) }
-const goShopping = () => uni.switchTab({ url: '/pages/Like/Like' })
+const goShopping = () => uni.switchTab({ url: '/pages/Home/Home' })
 const navigateBack = () => uni.navigateBack()
 
 onMounted(() => { loadDiscountStatus(); loadCartList() })

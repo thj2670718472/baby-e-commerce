@@ -2,19 +2,22 @@ var express = require('express');
 var router = express.Router();
 var db = require('../db/mysqldb');
 const { Op } = require('sequelize');
+const { requireAuth, optionalAuth } = require('../middleware/auth');
 
 // ==================== 记录搜索关键词 ====================
-router.post('/record', async (req, res) => {
+// 未登录也可搜索（记录为匿名），但归属用户只能来自登录态
+router.post('/record', optionalAuth, async (req, res) => {
   try {
-    const { keyword, userId } = req.body;
-    
+    const { keyword } = req.body;
+    const userId = req.user ? req.user.id : null;
+
     if (!keyword || !keyword.trim()) {
       return res.json({ code: 400, message: '关键词不能为空' });
     }
-    
+
     await db.searchHistory.create({
-      userId: userId || null,
-      keyword: keyword.trim(),
+      userId,
+      keyword: keyword.trim().slice(0, 50),
       searchTime: new Date()
     });
     
@@ -52,9 +55,13 @@ router.get('/hot', async (req, res) => {
 });
 
 // ==================== 获取用户搜索历史（最近20条） ====================
-router.get('/history/:userId', async (req, res) => {
+router.get('/history/:userId', requireAuth, async (req, res) => {
   try {
     const userId = req.params.userId;
+
+    if (req.user.role !== 'admin' && String(userId) !== String(req.user.id)) {
+      return res.status(403).json({ code: 403, message: '无权查看其他用户的搜索历史' });
+    }
     
     const history = await db.searchHistory.findAll({
       where: { userId: userId },
@@ -81,9 +88,14 @@ router.get('/history/:userId', async (req, res) => {
 });
 
 // ==================== 清除用户搜索历史 ====================
-router.delete('/history/:userId', async (req, res) => {
+router.delete('/history/:userId', requireAuth, async (req, res) => {
   try {
     const userId = req.params.userId;
+
+    if (req.user.role !== 'admin' && String(userId) !== String(req.user.id)) {
+      return res.status(403).json({ code: 403, message: '无权清空其他用户的搜索历史' });
+    }
+
     await db.searchHistory.destroy({ where: { userId: userId } });
     res.json({ code: 200, message: '清除成功' });
   } catch (error) {
@@ -92,27 +104,52 @@ router.delete('/history/:userId', async (req, res) => {
   }
 });
 
-// ==================== 搜索建议（根据输入前缀匹配） ====================
-router.get('/suggest', async (req, res) => {
+// ==================== 搜索建议（在售商品名 + 当前用户历史） ====================
+router.get('/suggest', optionalAuth, async (req, res) => {
   try {
-    const { keyword } = req.query;
-    
-    if (!keyword || !keyword.trim()) {
+    const keyword = (req.query.keyword || '').trim();
+
+    if (!keyword) {
       return res.json({ code: 200, data: [] });
     }
-    
-    // 从历史记录中匹配
-    const suggestions = await db.searchHistory.findAll({
-      attributes: ['keyword'],
-      where: {
-        keyword: { [Op.like]: `%${keyword.trim()}%` }
-      },
-      group: ['keyword'],
-      order: [[db.sequelize.fn('COUNT', db.sequelize.col('keyword')), 'DESC']],
-      limit: 8
+
+    const escaped = keyword.replace(/[\\%_]/g, (char) => `\\${char}`);
+    const like = `%${escaped}%`;
+
+    const suggestions = [];
+    const seen = new Set();
+    const push = (value) => {
+      const text = String(value || '').trim();
+      if (!text || seen.has(text)) return;
+      seen.add(text);
+      suggestions.push({ keyword: text });
+    };
+
+    // 1. 商品名联想：直接联想真实在售商品，未登录也能用
+    const goodsList = await db.goods.findAll({
+      attributes: ['name'],
+      where: { status: true, name: { [Op.like]: like } },
+      order: [['sales', 'DESC']],
+      limit: 5
     });
-    
-    res.json({ code: 200, data: suggestions, message: '获取建议成功' });
+    goodsList.forEach((item) => push(item.name));
+
+    // 2. 用本人搜索历史补足，未登录不查历史，避免泄露他人搜索内容
+    if (req.user && suggestions.length < 8) {
+      const history = await db.searchHistory.findAll({
+        attributes: ['keyword'],
+        where: {
+          userId: req.user.id,
+          keyword: { [Op.like]: like }
+        },
+        group: ['keyword'],
+        order: [[db.sequelize.fn('COUNT', db.sequelize.col('keyword')), 'DESC']],
+        limit: 8 - suggestions.length
+      });
+      history.forEach((item) => push(item.keyword));
+    }
+
+    res.json({ code: 200, data: suggestions.slice(0, 8), message: '获取建议成功' });
   } catch (error) {
     console.error('获取搜索建议失败:', error);
     res.json({ code: 500, message: '获取失败' });

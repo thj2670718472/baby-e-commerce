@@ -123,10 +123,16 @@
 import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Picture, ChatDotRound } from '@element-plus/icons-vue'
-import axios from 'axios'
+import service from '@/utils/request'
 
-const BASE_URL = 'http://localhost:3000'
-const WS_URL = 'ws://localhost:3000/ws/chat'
+// 图片等静态资源地址（接口请求走 /api 代理，无需配置）
+const BASE_URL = import.meta.env.VITE_FILE_BASE_URL || 'http://localhost:3000'
+// WebSocket 走 Vite 代理，避免硬编码主机地址
+const WS_URL = import.meta.env.VITE_WS_URL
+  || `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/chat`
+
+// 认证失败标记：避免无意义的重连风暴
+let authFailed = false
 
 const sessions = ref([])
 const currentSessionId = ref(null)
@@ -165,10 +171,11 @@ const getAdminAvatar = () => {
 
 // ========== 获取头像URL（通用） ==========
 const getAvatarUrl = (avatar) => {
-  if (!avatar) return '/default-avatar.png'
-  if (avatar.startsWith('http')) return avatar
+  if (!avatar) return '/images/user.png'
+  if (avatar.startsWith('http') || avatar.startsWith('data:')) return avatar
   if (avatar.startsWith('/uploads/')) return BASE_URL + avatar
-  return '/default-avatar.png'
+  if (avatar.startsWith('/')) return avatar
+  return '/images/user.png'
 }
 
 // ========== 获取发送者头像 ==========
@@ -181,11 +188,9 @@ const getSenderAvatar = (msg) => {
 
 // ========== 头像加载失败时的处理 ==========
 const onAvatarError = (event, msg) => {
-  if (msg.senderType === 'admin') {
-    event.target.src = '/default-avatar.png'
-  } else {
-    event.target.src = '/default-avatar.png'
-  }
+  event.target.src = msg.senderType === 'admin'
+    ? '/admin-avatar.png'
+    : '/images/user.png'
 }
 
 const formatTime = (time) => {
@@ -221,9 +226,9 @@ const previewImage = (url) => {
 
 const loadSessions = async () => {
   try {
-    const res = await axios.get(BASE_URL + '/chat/admin/sessions')
-    if (res.data.code === 200) {
-      sessions.value = res.data.data || []
+    const res = await service.get('/chat/admin/sessions')
+    if (res.code === 200) {
+      sessions.value = res.data || []
     }
   } catch (error) {
     console.error('加载会话列表失败:', error)
@@ -232,9 +237,9 @@ const loadSessions = async () => {
 
 const loadUnreadCount = async () => {
   try {
-    const res = await axios.get(BASE_URL + '/chat/admin/unread/count')
-    if (res.data.code === 200) {
-      totalUnread.value = res.data.data.count || 0
+    const res = await service.get('/chat/admin/unread/count')
+    if (res.code === 200) {
+      totalUnread.value = res.data.count || 0
     }
   } catch (error) {
     console.error('加载未读数失败:', error)
@@ -258,9 +263,9 @@ const loadMessages = async () => {
   if (!currentSessionId.value) return
   
   try {
-    const res = await axios.get(BASE_URL + `/chat/admin/messages/${currentSessionId.value}`)
-    if (res.data.code === 200) {
-      messages.value = res.data.data || []
+    const res = await service.get(`/chat/admin/messages/${currentSessionId.value}`)
+    if (res.code === 200) {
+      messages.value = res.data || []
       scrollToBottom()
     }
   } catch (error) {
@@ -336,11 +341,9 @@ const confirmSendImage = async () => {
 
   try {
     // 图片上传走 REST（FormData 不适合走 WebSocket）
-    const uploadRes = await axios.post(BASE_URL + '/chat/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    const uploadRes = await service.post('/chat/upload', formData)
 
-    if (uploadRes.data.code === 200) {
+    if (uploadRes.code === 200) {
       if (!ws || ws.readyState !== WebSocket.OPEN) {
         ElMessage.error('连接已断开，请刷新页面')
         return
@@ -349,11 +352,11 @@ const confirmSendImage = async () => {
       ws.send(JSON.stringify({
         type: 'send_message',
         sessionId: currentSessionId.value,
-        content: BASE_URL + uploadRes.data.data.url,
+        content: BASE_URL + uploadRes.data.url,
         messageType: 'image'
       }))
     } else {
-      ElMessage.error(uploadRes.data.message || '上传失败')
+      ElMessage.error(uploadRes.message || '上传失败')
     }
   } catch (error) {
     console.error('发送图片失败:', error)
@@ -398,11 +401,13 @@ const connectWebSocket = () => {
 
   // ── [管理员发送] 连接成功后发送认证 ──
   ws.onopen = () => {
+    const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}')
     ws.send(JSON.stringify({
       type: 'auth',
-      userId: 'admin',
-      userName: 'admin',
-      role: 'admin'
+      userId: currentUser.id,
+      userName: currentUser.username,
+      role: 'admin',
+      token: sessionStorage.getItem('token') || localStorage.getItem('token') || ''
     }))
     loadSessions()
     loadUnreadCount()
@@ -457,6 +462,17 @@ const connectWebSocket = () => {
           break
         case 'error':
           console.error('WebSocket错误:', msg.message)
+          // 认证失败时明确提示，避免界面看起来"没反应"
+          if (msg.message && msg.message.includes('认证')) {
+            authFailed = true
+            ElMessage.error('登录状态已失效，请重新登录后再使用客服功能')
+            sessionStorage.removeItem('user')
+            sessionStorage.removeItem('token')
+            localStorage.removeItem('token')
+            setTimeout(() => { window.location.href = '/login' }, 1200)
+          } else {
+            ElMessage.warning(msg.message || '操作失败')
+          }
           break
       }
     } catch (e) {
@@ -464,8 +480,9 @@ const connectWebSocket = () => {
     }
   }
 
-  // ── [管理员] 连接断开，5秒后自动重连 ──
+  // ── [管理员] 连接断开，5秒后自动重连（认证失败不再重连）──
   ws.onclose = () => {
+    if (authFailed) return
     wsReconnectTimer = setTimeout(() => {
       connectWebSocket()
     }, 5000)
@@ -477,6 +494,14 @@ const connectWebSocket = () => {
 }
 
 onMounted(() => {
+  // 没有 token 时先引导重新登录，避免建立无意义的连接
+  const token = sessionStorage.getItem('token') || localStorage.getItem('token')
+  if (!token) {
+    ElMessage.error('登录状态已失效，请重新登录后再使用客服功能')
+    setTimeout(() => { window.location.href = '/login' }, 1200)
+    return
+  }
+
   loadSessions()
   loadUnreadCount()
   connectWebSocket()

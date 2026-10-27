@@ -153,7 +153,7 @@ const loadCouponCount = async () => {
 
 
 const goToAI = () => {
-  uni.navigateTo({ url: '/pages/AI/AIChat' })
+  uni.navigateTo({ url: '/pages/AI/AIchat' })
 }
 const updateDisplayAvatar = () => {
 	const avatar = userInfo.value.avatar
@@ -177,7 +177,7 @@ const onAvatarError = () => {
 
 const checkLogin = () => {
 	if (!userInfo.value.username) {
-		uni.navigateTo({ url: '/pages/Index/Index' })
+		uni.navigateTo({ url: '/pages/Login/Login' })
 		return false
 	}
 	return true
@@ -196,7 +196,7 @@ onMounted(() => loadUserInfo())
 
 <style scoped>
 .my-home-page { min-height: 100vh; background-color: #f5f5f5; }
-.user-info-section { display: flex; align-items: center; background-color: #ff6b6b; padding: 40rpx 30rpx; color: #fff; }
+.user-info-section { display: flex; align-items: center; background-color: #ff6b6b; padding: 40rpx 30rpx; padding-top: calc(var(--status-bar-height) + 40rpx); color: #fff; }
 .user-avatar { width: 120rpx; height: 120rpx; border-radius: 50%; overflow: hidden; background-color: #fff; }
 .user-avatar image { width: 100%; height: 100%; }
 .user-info { flex: 1; margin-left: 30rpx; }

@@ -32,10 +32,10 @@ import { onMounted } from 'vue'
 onMounted(() => {
 	const timer = setTimeout(() => {
 		uni.switchTab({
-			url: '/pages/Like/Like',
+			url: '/pages/Home/Home',
 			fail: () => {
 				uni.reLaunch({
-					url: '/pages/Like/Like'
+					url: '/pages/Home/Home'
 				})
 			}
 		})

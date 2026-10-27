@@ -1,7 +1,10 @@
 <template>
 	<view class="category-page">
-		<!-- 搜索栏 -->
+		<!-- 页面标题与搜索栏 -->
 		<view class="search-bar">
+			<view class="page-title-row">
+				<text class="page-title">分类</text>
+			</view>
 			<view class="search-input">
 				<image class="search-icon" src="/static/搜索.png"></image>
 				<input 
@@ -178,7 +181,7 @@ import { ref, computed, onMounted } from 'vue'
 import { 
 	getCategoryList, getGoodsList, getDiscountStatus,
 	getHotKeywords, getSearchHistory, clearSearchHistory, 
-	getSearchSuggest, recordSearchKeyword 
+	getSearchSuggest, recordSearchKeyword, BASE_URL
 } from '../../api/index.js'
 
 const categoryList = ref([])
@@ -227,16 +230,26 @@ const getDisplayPrice = (price) => {
 	return formatPrice(price)
 }
 
+const buildImageUrl = (url) => {
+	if (!url) return ''
+	if (url.startsWith('http') || url.startsWith('data:')) return url
+	return BASE_URL + url
+}
+
 const getImageUrl = (images) => {
 	if (!images) return '/static/商品.png'
-	if (Array.isArray(images)) return images[0] || '/static/商品.png'
-	if (typeof images === 'string') {
+	let first = images
+	if (Array.isArray(images)) {
+		first = images[0]
+	} else if (typeof images === 'string') {
 		try {
 			const parsed = JSON.parse(images)
-			return Array.isArray(parsed) ? parsed[0] : images
-		} catch (e) { return images }
+			first = Array.isArray(parsed) ? parsed[0] : images
+		} catch (e) {
+			first = images
+		}
 	}
-	return '/static/商品.png'
+	return buildImageUrl(first) || '/static/商品.png'
 }
 
 const getCurrentUser = () => {
@@ -252,7 +265,7 @@ const goToFavorite = () => {
 	if (!user) {
 		uni.showModal({
 			title: '提示', content: '请先登录',
-			success: (res) => { if (res.confirm) uni.navigateTo({ url: '/pages/Index/Index' }) }
+			success: (res) => { if (res.confirm) uni.navigateTo({ url: '/pages/Login/Login' }) }
 		})
 		return
 	}
@@ -350,11 +363,10 @@ const performSearch = async (keyword) => {
 	recordSearchKeyword({ keyword: keyword.trim(), userId: user?.id || null }).catch(() => {})
 	
 	try {
-		const res = await getGoodsList({ name: keyword || '' })
+		// 检索交给服务端（/goods?name=xxx），不再把全量商品拉回前端过滤
+		const res = await getGoodsList({ name: keyword.trim(), sort: 'sales_desc' })
 		if (res.code === 200) {
-			searchResults.value = (res.data || []).filter(item => 
-				item.name && item.name.toLowerCase().includes(keyword.toLowerCase())
-			)
+			searchResults.value = res.data || []
 		} else {
 			searchResults.value = []
 		}
@@ -417,14 +429,17 @@ onMounted(() => {
 	position: relative;
 }
 
-/* ========== 搜索栏 ========== */
+/* ========== 标题与搜索栏 ========== */
 .search-bar {
 	padding: 20rpx;
+	padding-top: calc(var(--status-bar-height) + 20rpx);
 	background-color: #ffffff;
 	position: sticky;
 	top: 0;
 	z-index: 110;
 }
+.page-title-row { padding: 2rpx 4rpx 20rpx; }
+.page-title { display: block; font-size: 36rpx; line-height: 1.2; font-weight: 800; color: #2f2f2f; }
 
 .search-input {
 	display: flex;
@@ -543,8 +558,9 @@ onMounted(() => {
 .goods-info { padding: 15rpx 15rpx 15rpx 15rpx; }
 .goods-name { font-size: 26rpx; color: #333; margin-bottom: 8rpx; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .goods-category { font-size: 22rpx; color: #999; margin-bottom: 8rpx; }
-.price-wrapper { display: flex; align-items: baseline; gap: 10rpx; }
-.goods-price { font-size: 28rpx; color: #333; font-weight: bold; }
+/* 两列卡片较窄，打折日同时显示折后价与原价时允许换行，避免溢出 */
+.price-wrapper { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4rpx 8rpx; }
+.goods-price { font-size: 28rpx; color: #333; font-weight: bold; flex-shrink: 0; }
 .goods-price.discount-price { color: #ff6b6b; }
-.original-price { font-size: 22rpx; color: #999; text-decoration: line-through; }
+.original-price { font-size: 20rpx; color: #999; text-decoration: line-through; flex-shrink: 0; }
 </style>

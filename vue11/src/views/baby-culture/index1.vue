@@ -99,7 +99,7 @@ const isAdmin = computed(() => {
   if (userStr) {
     try {
       const user = JSON.parse(userStr)
-      return user.username === 'admin'
+      return user.role === 'admin'
     } catch (e) {
       console.error('解析用户信息失败:', e)
       return false

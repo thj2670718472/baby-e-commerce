@@ -33,7 +33,7 @@
     </view>
 
     <!-- 评价列表 -->
-    <scroll-view class="review-list" scroll-y v-if="filteredReviews.length > 0">
+    <scroll-view class="review-list" scroll-y v-if="filteredReviews.length > 0" @scrolltolower="loadMore">
       <view class="review-item" v-for="review in filteredReviews" :key="review.id">
         <view class="review-header">
           <text class="review-user">{{ review.userName || '匿名用户' }}</text>
@@ -47,6 +47,10 @@
           <image v-for="(img, idx) in review.images" :key="idx" :src="getImageUrl(img)" mode="aspectFill" class="review-img" @click="previewImages(review.images, idx)"></image>
         </view>
       </view>
+      <view style="text-align: center; padding: 20rpx 0;">
+        <text v-if="loadingMore" style="font-size: 24rpx; color: #999;">加载中...</text>
+        <text v-else-if="!hasMore" style="font-size: 24rpx; color: #999;">没有更多评价了</text>
+      </view>
     </scroll-view>
     <view v-else class="empty-tip">暂无评价</view>
   </view>
@@ -54,13 +58,17 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onReachBottom } from '@dcloudio/uni-app'
 import { getGoodsReviews, getReviewStats, BASE_URL } from '../../api/index.js'
 
 const goodsId = ref('')
 const reviews = ref([])
 const reviewStats = ref({ total: 0, avgRating: 0, ratingCounts: {} })
 const currentFilter = ref(0)
+const PAGE_SIZE = 10
+const page = ref(1)
+const hasMore = ref(true)
+const loadingMore = ref(false)
 
 const filteredReviews = computed(() => {
   if (currentFilter.value === 0) return reviews.value
@@ -96,19 +104,43 @@ const previewImages = (images, index) => {
 
 const filterReviews = (type) => { currentFilter.value = type }
 
-const loadData = async () => {
+const applyList = (payload, reset) => {
+  const list = Array.isArray(payload) ? payload : (payload && payload.list) || []
+  const total = Array.isArray(payload) ? list.length : (payload && payload.total) || 0
+  const mapped = list.map(item => ({ ...item, images: parseImages(item.images) }))
+  reviews.value = reset ? mapped : [...reviews.value, ...mapped]
+  hasMore.value = reviews.value.length < total
+}
+
+const loadData = async (reset = true) => {
   try {
-    const [a, b] = await Promise.all([getGoodsReviews(goodsId.value), getReviewStats(goodsId.value)])
-    if (a.code === 200) {
-      reviews.value = (a.data || []).map(item => ({ ...item, images: parseImages(item.images) }))
+    if (reset) {
+      page.value = 1
+    } else {
+      if (!hasMore.value || loadingMore.value) return
+      loadingMore.value = true
     }
-    if (b.code === 200) reviewStats.value = b.data || { total: 0, avgRating: 0, ratingCounts: {} }
-  } catch (e) {}
+    const [a, b] = await Promise.all([
+      getGoodsReviews(goodsId.value, { page: page.value, pageSize: PAGE_SIZE }),
+      reset ? getReviewStats(goodsId.value) : Promise.resolve(null)
+    ])
+    if (a.code === 200) applyList(a.data, reset)
+    if (b && b.code === 200) reviewStats.value = b.data || { total: 0, avgRating: 0, ratingCounts: {} }
+  } catch (e) {} finally {
+    loadingMore.value = false
+  }
+}
+
+const loadMore = () => {
+  if (!hasMore.value || loadingMore.value) return
+  page.value += 1
+  loadData(false)
 }
 
 const navigateBack = () => uni.navigateBack()
 
 onLoad((options) => { goodsId.value = options.goodsId; loadData() })
+onReachBottom(loadMore)
 </script>
 
 <style scoped>

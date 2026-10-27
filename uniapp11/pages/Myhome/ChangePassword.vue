@@ -146,7 +146,7 @@ const handleSubmit = async () => {
 		// 跳转到登录页
 		setTimeout(() => {
 			uni.reLaunch({
-				url: '/pages/Index/Index'
+				url: '/pages/Login/Login'
 			})
 		}, 1500)
 		return
@@ -163,7 +163,7 @@ const handleSubmit = async () => {
 		})
 		setTimeout(() => {
 			uni.reLaunch({
-				url: '/pages/Index/Index'
+				url: '/pages/Login/Login'
 			})
 		}, 1500)
 		return
@@ -176,7 +176,7 @@ const handleSubmit = async () => {
 		})
 		setTimeout(() => {
 			uni.reLaunch({
-				url: '/pages/Index/Index'
+				url: '/pages/Login/Login'
 			})
 		}, 1500)
 		return
@@ -213,7 +213,7 @@ const handleSubmit = async () => {
 			// 跳转到登录页
 			setTimeout(() => {
 				uni.reLaunch({
-					url: '/pages/Index/Index'
+					url: '/pages/Login/Login'
 				})
 			}, 2000)
 		} else {

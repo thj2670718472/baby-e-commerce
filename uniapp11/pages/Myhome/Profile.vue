@@ -101,7 +101,7 @@ const originalUserInfo = ref({})
 
 // 判断是否为管理员
 const isAdmin = computed(() => {
-	return userInfo.value.username === 'admin'
+	return userInfo.value.role === 'admin'
 })
 
 // 图片加载失败时的处理
@@ -123,7 +123,8 @@ const loadUserInfo = () => {
 				username: user.username || '',
 				phone: user.phone || '',
 				email: user.email || '',
-				avatar: user.avatar || ''
+				avatar: user.avatar || '',
+				role: user.role === 'admin' ? 'admin' : 'user'
 			}
 			originalUserInfo.value = { ...userInfo.value }
 			updateDisplayAvatar()
@@ -182,6 +183,9 @@ const uploadAvatarToServer = (filePath) => {
 		url: BASE_URL + '/upload/image',
 		filePath: filePath,
 		name: 'file',
+		header: {
+			Authorization: `Bearer ${uni.getStorageSync('token') || ''}`
+		},
 		success: (res) => {
 			uni.hideLoading()
 			try {
@@ -304,7 +308,7 @@ const handleLogout = () => {
 				uni.removeStorageSync('userInfo')
 				uni.removeStorageSync('token')
 				uni.showToast({ title: '已退出登录', icon: 'success' })
-				setTimeout(() => uni.reLaunch({ url: '/pages/Index/Index' }), 1500)
+				setTimeout(() => uni.reLaunch({ url: '/pages/Login/Login' }), 1500)
 			}
 		}
 	})

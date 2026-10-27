@@ -121,7 +121,7 @@ onMounted(() => loadArticles())
 
 <style scoped>
 .article-page { min-height: 100vh; background-color: #f5f5f5; }
-.article-header { display: flex; justify-content: center; padding: 30rpx; background-color: #fff; }
+.article-header { display: flex; justify-content: center; padding: 30rpx; padding-top: calc(var(--status-bar-height) + 30rpx); background-color: #fff; }
 .header-title { font-size: 36rpx; font-weight: bold; color: #333; }
 
 .section-title { font-size: 28rpx; font-weight: bold; color: #ff6b6b; padding: 20rpx; }

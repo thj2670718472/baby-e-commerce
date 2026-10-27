@@ -1,16 +1,17 @@
 import request from '../utils/request.js';
+import { BASE_URL } from '../config.js';
 
-// 服务器地址 -本机地址
-export const BASE_URL = 'http://localhost:3000';
+// 服务器地址统一在 config.js 中配置（支持 .env 与真机局域网地址）
+export { BASE_URL };
 
 // ==================== 用户相关 ====================
 
-// 用户登录
+// 用户登录（POST，避免密码出现在 URL 中）
 export const login = (data) => {
   return request({
     url: '/user/login',
-    method: 'GET',
-    params: data
+    method: 'POST',
+    data
   });
 };
 
@@ -41,10 +42,18 @@ export const updateUserProfile = (data) => {
   });
 };
 
-// 获取用户列表
+// 获取用户列表（仅管理员）
 export const getUserList = () => {
   return request({
     url: '/user/list',
+    method: 'GET'
+  });
+};
+
+// 获取客服公开信息（头像等），普通用户可用
+export const getAdminInfo = () => {
+  return request({
+    url: '/user/admin-info',
     method: 'GET'
   });
 };
@@ -62,6 +71,11 @@ export const deleteUser = (id) => {
 export const getUserPoints = (userId) => request({ url: `/points/user/${userId}`, method: 'GET' });
 export const getPointsRecords = (userId) => request({ url: `/points/records/${userId}`, method: 'GET' });
 export const getExchangeRecords = (userId) => request({ url: `/points/exchange-records/${userId}`, method: 'GET' });
+
+// 积分商城：商品列表 / 商品详情 / 兑换商品
+export const getPointsShop = (params = {}) => request({ url: '/points/shop', method: 'GET', params });
+export const getPointsGoodsDetail = (id) => request({ url: `/points/shop/${id}`, method: 'GET' });
+export const exchangePointsGoods = (data) => request({ url: '/points/exchange', method: 'POST', data });
 
 // ==================== 聊天相关 ====================
 
@@ -91,6 +105,9 @@ export const uploadChatImage = (filePath) => {
         
         return fetch(BASE_URL + '/chat/upload', {
           method: 'POST',
+          headers: {
+            Authorization: `Bearer ${uni.getStorageSync('token') || ''}`
+          },
           body: formData
         });
       })
@@ -206,11 +223,11 @@ export const getLogisticsInfo = (orderId) => {
 
 // ==================== 订单相关 ====================
 
-export const getOrderList = (userId) => {
+export const getOrderList = (userId, params = {}) => {
   return request({
     url: '/orders/list',
     method: 'GET',
-    params: { userId }
+    params: { userId, ...params }
   });
 };
 
@@ -241,6 +258,14 @@ export const updateOrderStatus = (id, status) => {
     url: `/orders/update-status/${id}`,
     method: 'PUT',
     data: { status }
+  });
+};
+
+// 用户支付订单（仅能支付自己的待付款订单）
+export const payOrder = (id) => {
+  return request({
+    url: `/orders/pay/${id}`,
+    method: 'POST'
   });
 };
 
@@ -429,10 +454,11 @@ export const submitReview = (data) => {
   });
 };
 
-export const getGoodsReviews = (goodsId) => {
+export const getGoodsReviews = (goodsId, params = {}) => {
   return request({
     url: `/reviews/goods/${goodsId}`,
-    method: 'GET'
+    method: 'GET',
+    params
   });
 };
 
@@ -559,6 +585,9 @@ export const uploadImage = (filePath) => {
       url: BASE_URL + '/upload/image',
       filePath: filePath,
       name: 'file',
+      header: {
+        Authorization: `Bearer ${uni.getStorageSync('token') || ''}`
+      },
       success: (res) => {
         try {
           const data = JSON.parse(res.data);
@@ -588,6 +617,25 @@ export const getStatistics = () => {
   return request({
     url: '/dashboard/statistics',
     method: 'GET'
+  });
+};
+
+// ==================== 秒杀相关 ====================
+
+// 场次列表（含各场次商品与状态，serverTime 用于倒计时校准）
+export const getSeckillSessions = () => {
+  return request({
+    url: '/seckill/sessions',
+    method: 'GET'
+  });
+};
+
+// 抢购：成功返回待付款订单
+export const seckillBuy = (seckillGoodsId, quantity = 1, extra = {}) => {
+  return request({
+    url: '/seckill/buy',
+    method: 'POST',
+    data: { seckillGoodsId, quantity, ...extra }
   });
 };
 
@@ -667,5 +715,11 @@ export default {
   addFavorite,
   removeFavorite,
   getDiscountStatus,
- 
+  getUserPoints,
+  getPointsRecords,
+  getExchangeRecords,
+  getPointsShop,
+  getPointsGoodsDetail,
+  exchangePointsGoods,
+
 };

@@ -49,8 +49,8 @@ const loadUsers = async () => {
   try {
     const res = await UserAPI.getUsers()
     if (res.code === 200) {
-      // 过滤掉admin用户
-      userList.value = (res.data || []).filter(user => user.username !== 'admin')
+      // 过滤掉管理员用户
+      userList.value = (res.data || []).filter(user => user.role !== 'admin')
     } else {
       ElMessage.error(res.message || '加载用户列表失败')
     }

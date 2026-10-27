@@ -13,8 +13,9 @@ function model_goods(db, SEQ) {
       allowNull: false
     },
     price: {
-      type: SEQ.INTEGER,
-      allowNull: false
+      type: SEQ.DECIMAL(10, 2),
+      allowNull: false,
+      comment: '商品单价，支持两位小数'
     },
     status: {
       type: SEQ.BOOLEAN,

@@ -1,4 +1,10 @@
+const { Op } = require('sequelize');
 const goods = require('./mysqldb').goods;
+
+// 关键词里的 % 和 _ 是 LIKE 通配符，需要转义，否则用户输入 "%" 会匹配全部商品
+function escapeLike(keyword) {
+    return String(keyword).replace(/[\\%_]/g, (char) => `\\${char}`);
+}
 
 function goodsdal() {
     this.addGoods = async function(model) {
@@ -28,27 +34,80 @@ function goodsdal() {
         }
     }
 
-    this.getAllGoods = async function(status) {
+    const mapGoods = (item) => {
+        let images = item.images || [];
+        if (typeof images === 'string') {
+            try {
+                images = JSON.parse(images);
+            } catch (e) {
+                images = [];
+            }
+        }
+        return {
+            ...item.toJSON(),
+            images: Array.isArray(images) ? images : []
+        };
+    };
+
+    // 排序白名单：前端只能选这里列出的排序，避免把任意字符串拼进 SQL
+    const SORTS = {
+        default: [['id', 'ASC']],
+        newest: [['id', 'DESC']],
+        price_asc: [['price', 'ASC']],
+        price_desc: [['price', 'DESC']],
+        sales_desc: [['sales', 'DESC']]
+    };
+
+    this.getAllGoods = async function(status, options = {}) {
         try {
             const where = {};
             if (status !== undefined && status !== null && status !== '') {
                 where.status = status === 'true' || status === true;
             }
-            const goodsList = await goods.findAll({ where, order: [['id', 'ASC']] });
-            return goodsList.map(item => {
-                let images = item.images || [];
-                if (typeof images === 'string') {
-                    try {
-                        images = JSON.parse(images);
-                    } catch (e) {
-                        images = [];
-                    }
-                }
+
+            // 关键词检索：商品名或分类名命中都算
+            const keyword = typeof options.keyword === 'string' ? options.keyword.trim() : '';
+            if (keyword) {
+                const like = `%${escapeLike(keyword)}%`;
+                where[Op.or] = [
+                    { name: { [Op.like]: like } },
+                    { category: { [Op.like]: like } }
+                ];
+            }
+
+            // 按分类名筛选（商品表的 category 存的就是分类名称）
+            const category = typeof options.category === 'string' ? options.category.trim() : '';
+            if (category) where.category = category;
+
+            const order = SORTS[options.sort] || SORTS.default;
+            const page = Number(options.page);
+            const pageSize = Number(options.pageSize || 20);
+
+            // 不传 page 时保持原有行为（返回数组），避免影响已有前端
+            if (Number.isInteger(page) && page > 0) {
+                const size = Math.min(Math.max(pageSize, 1), 100);
+                const { count, rows } = await goods.findAndCountAll({
+                    where,
+                    order,
+                    limit: size,
+                    offset: (page - 1) * size
+                });
                 return {
-                    ...item.toJSON(),
-                    images: Array.isArray(images) ? images : []
+                    list: rows.map(mapGoods),
+                    total: count,
+                    page,
+                    pageSize: size,
+                    totalPages: Math.ceil(count / size)
                 };
+            }
+
+            // 关键词搜索时限制返回条数，避免一次把整张表拉回客户端
+            const goodsList = await goods.findAll({
+                where,
+                order,
+                ...(keyword ? { limit: 100 } : {})
             });
+            return goodsList.map(mapGoods);
         } catch (error) {
             console.error('获取商品列表失败:', error);
             throw error;

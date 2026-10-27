@@ -11,8 +11,9 @@
 			<text class="points-label">当前积分</text>
 			<text class="points-num">{{ points }}</text>
 			<view class="points-actions">
-
+				<button class="action-btn shop-btn" @click="goShop">积分商城</button>
 				<button class="action-btn exchange-btn" @click="goRecords">积分记录</button>
+				<button class="action-btn records-btn" @click="goExchangeRecords">兑换记录</button>
 			</view>
 		</view>
 
@@ -102,6 +103,10 @@ const goRecords = () => {
 	uni.navigateTo({ url: '/pages/Points/Records' })
 }
 
+const goExchangeRecords = () => {
+	uni.navigateTo({ url: '/pages/Points/ExchangeRecords' })
+}
+
 const navigateBack = () => uni.navigateBack()
 
 onMounted(() => loadData())
@@ -117,10 +122,12 @@ onMounted(() => loadData())
 .points-card { background: linear-gradient(135deg, #ff6b6b, #ff8e8e); margin: 20rpx; border-radius: 20rpx; padding: 50rpx 40rpx; text-align: center; color: #fff; }
 .points-label { font-size: 26rpx; opacity: 0.9; }
 .points-num { font-size: 80rpx; font-weight: bold; display: block; margin: 15rpx 0 25rpx; }
-.points-actions { display: flex; gap: 20rpx; justify-content: center; }
-.action-btn { padding: 15rpx 35rpx; border-radius: 30rpx; font-size: 26rpx; border: none; }
-.record-btn { background-color: rgba(255,255,255,0.9); color: #ff6b6b; }
-.exchange-btn { background-color: #fff; color: #ff6b6b; }
+.points-actions { display: flex; gap: 16rpx; justify-content: center; }
+.action-btn { padding: 14rpx 24rpx; border-radius: 30rpx; font-size: 24rpx; border: none; line-height: 1.6; }
+.action-btn::after { border: none; }
+.shop-btn { background-color: #fff; color: #ff6b6b; font-weight: bold; }
+.exchange-btn { background-color: rgba(255,255,255,0.85); color: #ff6b6b; }
+.records-btn { background-color: rgba(255,255,255,0.25); color: #fff; }
 
 .rule-section { background-color: #fff; margin: 20rpx; border-radius: 16rpx; padding: 25rpx; }
 .section-title { font-size: 30rpx; font-weight: bold; color: #333; margin-bottom: 20rpx; display: block; }

@@ -200,7 +200,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getGoodsDetail, createOrder, getGoodsReviews, getReviewStats, checkFavorite, addFavorite, removeFavorite, getDiscountStatus, BASE_URL, getAddressList, getAvailableCoupons, useCoupon, getUserPoints, addToCart as addToCartApi } from '../../api/index.js'
+import { getGoodsDetail, createOrder, payOrder, getGoodsReviews, getReviewStats, checkFavorite, addFavorite, removeFavorite, getDiscountStatus, BASE_URL, getAddressList, getAvailableCoupons, useCoupon, getUserPoints, addToCart as addToCartApi } from '../../api/index.js'
 
 const goods = ref({ id: '', name: '', price: 0, quantity: 0, images: [], description: '' })
 const discountInfo = ref(null)
@@ -292,11 +292,17 @@ const loadDiscountStatus = async () => { try { const r = await getDiscountStatus
 const loadGoodsDetail = async () => { if (!goodsId.value) return; try { const r = await getGoodsDetail(goodsId.value); if (r.code === 200) goods.value = r.data } catch (e) {} }
 
 // ========== 加载评价时解析图片 ==========
+// 详情页只展示前 2 条（previewReviews），按需取 2 条即可
 const loadReviews = async () => {
   try {
-    const [a, b] = await Promise.all([getGoodsReviews(goodsId.value), getReviewStats(goodsId.value)])
+    const [a, b] = await Promise.all([
+      getGoodsReviews(goodsId.value, { page: 1, pageSize: 2 }),
+      getReviewStats(goodsId.value)
+    ])
     if (a.code === 200) {
-      reviews.value = (a.data || []).map(item => ({
+      const payload = a.data
+      const list = Array.isArray(payload) ? payload : (payload && payload.list) || []
+      reviews.value = list.map(item => ({
         ...item,
         images: parseImages(item.images)
       }))
@@ -309,7 +315,7 @@ const checkFavoriteStatus = async () => { const u = getCurrentUser(); if (!u) re
 
 const toggleFavorite = async () => {
 	const u = getCurrentUser()
-	if (!u) { uni.showModal({ title: '提示', content: '请先登录', success: (r) => { if (r.confirm) uni.navigateTo({ url: '/pages/Index/Index' }) } }); return }
+	if (!u) { uni.showModal({ title: '提示', content: '请先登录', success: (r) => { if (r.confirm) uni.navigateTo({ url: '/pages/Login/Login' }) } }); return }
 	if (isFavorite.value) { try { await removeFavorite(u.id, goodsId.value); isFavorite.value = false; uni.showToast({ title: '已取消收藏', icon: 'success' }) } catch (e) {} }
 	else { try { const img = Array.isArray(goods.value.images) ? goods.value.images[0] : goods.value.images; await addFavorite({ userId: u.id, goodsId: goods.value.id, goodsName: goods.value.name, goodsImage: img || '', goodsPrice: goods.value.price }); isFavorite.value = true; uni.showToast({ title: '收藏成功', icon: 'success' }) } catch (e) {} }
 }
@@ -334,7 +340,7 @@ const onPointsBlur = () => {
 
 const showBuyModal = async (pay) => {
 	const u = getCurrentUser()
-	if (!u) { uni.showModal({ title: '提示', content: '请先登录', success: (r) => { if (r.confirm) uni.navigateTo({ url: '/pages/Index/Index' }) } }); return }
+	if (!u) { uni.showModal({ title: '提示', content: '请先登录', success: (r) => { if (r.confirm) uni.navigateTo({ url: '/pages/Login/Login' }) } }); return }
 	if (!goods.value.status) { uni.showToast({ title: '商品已下架，无法购买' }); return }
 		if (goods.value.quantity === 0) { uni.showToast({ title: '商品已售罄' }); return }
 	currentUser.value = u; isPaid.value = pay; usePoints.value = 0
@@ -363,22 +369,27 @@ const submitOrder = async () => {
   if (!selectedAddress.value) { uni.showToast({ title: '请选择收货地址' }); return }
   submitting.value = true; uni.showLoading({ title: '提交中...' })
   try {
-    let img = ''
-    const imgs = goods.value.images
-    if (Array.isArray(imgs) && imgs.length > 0) img = imgs[0]
-    else if (typeof imgs === 'string') { try { const p = JSON.parse(imgs); img = Array.isArray(p) && p.length > 0 ? p[0] : imgs } catch (e) { img = imgs } }
+    // 只提交商品 id 与数量，价格、优惠、状态均由服务端计算
     const d = {
-      userId: currentUser.value.id, userName: currentUser.value.username,
-      totalAmount: finalTotal.value, status: isPaid.value ? '已付款' : '待付款',
       paymentMethod: '在线支付',
       address: `${selectedAddress.value.province}${selectedAddress.value.city}${selectedAddress.value.district}${selectedAddress.value.detail}`,
       phone: selectedAddress.value.phone,
-      goods: [{ goodsId: goods.value.id, goodsName: goods.value.name, goodsImage: img || '', price: originalPrice.value, quantity: quantity.value }],
-      couponId: selectedCoupon.value?.id, usePoints: actualUsePoints.value
+      goods: [{ goodsId: goods.value.id, quantity: quantity.value }],
+      couponId: selectedCoupon.value?.id,
+      usePoints: actualUsePoints.value
     }
     const r = await createOrder(d)
     if (r.code === 200) {
-      if (selectedCoupon.value) await useCoupon(selectedCoupon.value.id, r.data.id)
+      // 选择"立即支付"时，创建订单后再发起支付
+      if (isPaid.value) {
+        const payRes = await payOrder(r.data.id)
+        if (payRes.code !== 200) {
+          uni.hideLoading()
+          uni.showToast({ title: payRes.message || '订单已创建，请在订单页支付', icon: 'none' })
+          closeBuyModal(); setTimeout(() => uni.navigateTo({ url: '/pages/Orders/Orders' }), 1500)
+          return
+        }
+      }
       uni.hideLoading(); uni.showToast({ title: isPaid.value ? '支付并购买成功！' : '购买成功！', icon: 'success' })
       closeBuyModal(); setTimeout(() => uni.navigateTo({ url: '/pages/Orders/Orders' }), 1500)
     } else { uni.hideLoading(); uni.showToast({ title: r.message || '购买失败' }) }

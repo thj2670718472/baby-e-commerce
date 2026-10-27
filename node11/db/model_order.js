@@ -73,6 +73,25 @@ function model_order(db, SEQ) {
       allowNull: true,
       comment: '退货申请时间'
     },
+    returnPreviousStatus: {
+      type: SEQ.ENUM('已付款', '已发货', '已完成'),
+      allowNull: true,
+      comment: '申请退货前的订单状态，用于审核拒绝后恢复'
+    },
+    // ========== 软删除 ==========
+    isDeleted: {
+      type: SEQ.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: '用户删除标记：用户端不可见，保留记录供后台统计与售后追溯'
+    },
+    // ========== 秒杀 ==========
+    seckillGoodsId: {
+      type: SEQ.INTEGER,
+      allowNull: true,
+      defaultValue: null,
+      comment: '秒杀商品ID；为空表示普通订单。取消/超时释放时按它回补秒杀库存'
+    },
     // ========== 新增物流字段 ==========
     logisticsCompany: {
       type: SEQ.STRING(100),

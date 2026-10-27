@@ -2,11 +2,20 @@ function model_user(db,SEQ){
     const user=db.define('user',{
         username:{
             type:SEQ.STRING,
-            allowNull:false
+            allowNull:false,
+            unique:'uq_tb_user_username'
         },
         password:{
             type:SEQ.STRING,
             allowNull:false
+        },
+        role:{
+            type:SEQ.STRING(20),
+            allowNull:false,
+            defaultValue:'user',
+            validate:{
+                isIn:[['user','admin']]
+            }
         },
         phone:{
             type:SEQ.STRING,

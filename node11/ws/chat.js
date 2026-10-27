@@ -1,5 +1,7 @@
 const WebSocket = require('ws');
 const db = require('../db/mysqldb');
+const { verify } = require('../utils/token');
+const { passwordTag } = require('../utils/password');
 
 // ==================== 连接池 ====================
 // [用户] userId -> { ws, userId, userName, role } —— 每个用户一个连接
@@ -7,14 +9,55 @@ const userClients = new Map();
 // [管理员] WebSocket 连接集合 —— 可能有多个管理员同时在线
 const adminClients = new Set();
 
+// ==================== 消息约束 ====================
+// 单帧上限：聊天只传文本和图片地址，64KB 足够；超限时 ws 会以 1009 关闭连接
+const MAX_PAYLOAD_BYTES = Math.max(1024, Number(process.env.WS_MAX_PAYLOAD) || 64 * 1024);
+// 单连接频率：默认 10 秒 20 条
+const MESSAGE_WINDOW_MS = Math.max(1000, Number(process.env.WS_MESSAGE_WINDOW_MS) || 10 * 1000);
+const MESSAGE_WINDOW_MAX = Math.max(1, Number(process.env.WS_MESSAGE_MAX) || 20);
+// 单条消息长度上限：与数据库 TEXT 字段和前端展示能力对齐
+const MAX_CONTENT_LENGTH = Math.max(1, Number(process.env.WS_MAX_CONTENT) || 2000);
+
+/**
+ * 单连接滑动窗口限流
+ * 每个连接独立计数，超出后由调用方决定回错误还是断开
+ */
+function createMessageLimiter(options = {}) {
+  const windowMs = options.windowMs || MESSAGE_WINDOW_MS;
+  const max = options.max || MESSAGE_WINDOW_MAX;
+  let windowStart = Date.now();
+  let count = 0;
+
+  return function allowMessage() {
+    const now = Date.now();
+    if (now - windowStart >= windowMs) {
+      windowStart = now;
+      count = 0;
+    }
+    count += 1;
+    return count <= max;
+  };
+}
+
 function setupWebSocket(server) {
-  const wss = new WebSocket.Server({ server, path: '/ws/chat' });
+  const wss = new WebSocket.Server({
+    server,
+    path: '/ws/chat',
+    maxPayload: MAX_PAYLOAD_BYTES
+  });
 
   wss.on('connection', (ws) => {
     let clientInfo = null;
+    const allowMessage = createMessageLimiter();
 
     // ==================== [用户 + 管理员] 接收客户端消息入口 ====================
     ws.on('message', async (raw) => {
+      // 限流放在 JSON 解析之前：畸形/超大消息也不该反复消耗解析开销
+      if (!allowMessage()) {
+        sendTo(ws, { type: 'error', message: '消息发送过于频繁，请稍后再试' });
+        return;
+      }
+
       try {
         const msg = JSON.parse(raw.toString());
         await handleMessage(ws, msg, () => clientInfo, (info) => { clientInfo = info; });
@@ -43,23 +86,50 @@ function setupWebSocket(server) {
   console.log('WebSocket 聊天服务已启动 (路径: /ws/chat)');
 }
 
+function canAccessSession(client, session) {
+  return client.role === 'admin' || String(session.userId) === String(client.userId);
+}
+
 async function handleMessage(ws, msg, getClientInfo, setClientInfo) {
   switch (msg.type) {
 
     // ==================== [用户 + 管理员] 认证 ====================
     case 'auth': {
-      const { userId, userName, role } = msg;
+      const { userId, role, token } = msg;
+      let { userName } = msg;
       if (!userId || !role) {
         sendTo(ws, { type: 'error', message: '认证参数不完整' });
         return;
       }
-      setClientInfo({ userId, userName, role });
+
+      const payload = verify(token);
+      if (!payload || !payload.ver || !['user', 'admin'].includes(role)) {
+        sendTo(ws, { type: 'error', message: '认证失败，请重新登录' });
+        return;
+      }
+
+      const user = await db.user.findByPk(payload.sub, {
+        attributes: ['id', 'username', 'password', 'role']
+      });
+      const currentRole = user && user.role === 'admin' ? 'admin' : 'user';
+      if (
+        !user ||
+        payload.ver !== passwordTag(user.password) ||
+        currentRole !== role ||
+        String(user.id) !== String(userId)
+      ) {
+        sendTo(ws, { type: 'error', message: '认证失败，请重新登录' });
+        return;
+      }
+
+      userName = user.username;
+      setClientInfo({ userId: user.id, userName, role: currentRole });
 
       // [用户] 存入 userClients，key 为用户ID
-      if (role === 'user') {
-        userClients.set(String(userId), { ws, userId, userName, role });
+      if (currentRole === 'user') {
+        userClients.set(String(user.id), { ws, userId: user.id, userName, role: currentRole });
       // [管理员] 存入 adminClients 集合
-      } else if (role === 'admin') {
+      } else {
         adminClients.add(ws);
       }
 
@@ -83,9 +153,22 @@ async function handleMessage(ws, msg, getClientInfo, setClientInfo) {
         return;
       }
 
+      // 只接受 text / image，其余降级为 text，避免把非法值写进 ENUM 字段
+      const safeType = messageType === 'image' ? 'image' : 'text';
+      const safeContent = String(content);
+      if (safeContent.length > MAX_CONTENT_LENGTH) {
+        sendTo(ws, { type: 'error', message: `单条消息不能超过 ${MAX_CONTENT_LENGTH} 个字符` });
+        return;
+      }
+
       const session = await db.ChatSession.findByPk(sessionId);
       if (!session) {
         sendTo(ws, { type: 'error', message: '会话不存在' });
+        return;
+      }
+
+      if (!canAccessSession(client, session)) {
+        sendTo(ws, { type: 'error', message: '无权操作该会话' });
         return;
       }
 
@@ -96,10 +179,10 @@ async function handleMessage(ws, msg, getClientInfo, setClientInfo) {
 
       // [用户] 用户发消息 → handleUserMessage
       if (client.role === 'user') {
-        await handleUserMessage(client, session, content, messageType);
+        await handleUserMessage(client, session, safeContent, safeType);
       // [管理员] 管理员发消息 → handleAdminMessage
       } else if (client.role === 'admin') {
-        await handleAdminMessage(client, session, content, messageType);
+        await handleAdminMessage(client, session, safeContent, safeType);
       }
       break;
     }
@@ -111,6 +194,12 @@ async function handleMessage(ws, msg, getClientInfo, setClientInfo) {
 
       const { sessionId } = msg;
       if (!sessionId) return;
+
+      const session = await db.ChatSession.findByPk(sessionId);
+      if (!session || !canAccessSession(client, session)) {
+        sendTo(ws, { type: 'error', message: '无权操作该会话' });
+        return;
+      }
 
       // [用户] 标记管理员消息为已读，清空"用户端的未读数"
       if (client.role === 'user') {
@@ -286,7 +375,24 @@ async function broadcastSessionsToAdmins() {
     where: { status: 1 },
     order: [['lastTime', 'DESC']]
   });
-  const data = sessions.map(s => s.toJSON ? s.toJSON() : s);
+  const userIds = [...new Set(sessions.map((session) => session.userId))];
+  const users = userIds.length
+    ? await db.user.findAll({
+      where: { id: userIds },
+      attributes: ['id', 'username', 'avatar']
+    })
+    : [];
+  const userMap = new Map(users.map((user) => [Number(user.id), user]));
+
+  const data = sessions.map((session) => {
+    const item = session.toJSON();
+    const user = userMap.get(Number(session.userId));
+    if (user) {
+      item.userName = user.username;
+      item.userAvatar = user.avatar || '';
+    }
+    return item;
+  });
   for (const adminWs of adminClients) {
     sendTo(adminWs, { type: 'sessions_update', data });
   }
@@ -308,4 +414,12 @@ function sendTo(ws, data) {
   }
 }
 
-module.exports = { setupWebSocket };
+module.exports = {
+  setupWebSocket,
+  handleMessage,
+  createMessageLimiter,
+  MAX_PAYLOAD_BYTES,
+  MESSAGE_WINDOW_MS,
+  MESSAGE_WINDOW_MAX,
+  MAX_CONTENT_LENGTH
+};

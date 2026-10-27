@@ -143,12 +143,42 @@ const routes = [
         }
       },
       {
+        path: 'seckill',
+        name: 'Seckill',
+        component: () => import('@/views/seckill/index.vue'),
+        meta: {
+          title: '秒杀管理',
+          icon: 'AlarmClock',
+          requiresAuth: true
+        }
+      },
+      {
+        path: 'coupon',
+        name: 'CouponManage',
+        component: () => import('@/views/coupon/index.vue'),
+        meta: {
+          title: '优惠券管理',
+          icon: 'Ticket',
+          requiresAuth: true
+        }
+      },
+      {
         path: 'baby-culture',
         name: 'BabyCulture',
         component: () => import('@/views/baby-culture/index1.vue'),
-        meta: { 
-          title: '婴儿培养', 
-          icon: 'Reading', 
+        meta: {
+          title: '婴儿培养',
+          icon: 'Reading',
+          requiresAuth: true
+        }
+      },
+      {
+        path: 'points',
+        name: 'PointsMall',
+        component: () => import('@/views/points/index.vue'),
+        meta: {
+          title: '积分商城',
+          icon: 'Coin',
           requiresAuth: true
         }
       },
@@ -174,7 +204,7 @@ router.beforeEach((to, from) => {
   if (userStr) {
     try {
       const user = JSON.parse(userStr)
-      isAdmin = user.username === 'admin'
+      isAdmin = user.role === 'admin'
     } catch (e) {
       console.error('解析用户信息失败:', e)
     }

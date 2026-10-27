@@ -53,7 +53,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import request from '@/utils/request'
 
 // 婴儿数量
 const babyCount = ref(1)
@@ -172,15 +172,15 @@ const saveBabyInfo = async () => {
   
   try {
     // 保存到数据库
-    const response = await axios.post('/api/baby/save', {
+    const response = await request.post('/baby/save', {
       userId,
       babies: babies.value
     })
     
-    if (response.data.code === 200) {
+    if (response.code === 200) {
       ElMessage.success('保存成功')
     } else {
-      ElMessage.error('保存失败: ' + response.data.message)
+      ElMessage.error('保存失败: ' + response.message)
     }
   } catch (error) {
     console.error('保存婴儿信息失败:', error)
@@ -198,10 +198,10 @@ const loadBabyInfo = async () => {
   
   try {
     // 从数据库加载
-    const response = await axios.get(`/api/baby/list?userId=${userId}`)
+    const response = await request.get(`/baby/list?userId=${userId}`)
     
-    if (response.data.code === 200 && response.data.data) {
-      const babyList = response.data.data
+    if (response.code === 200 && response.data) {
+      const babyList = response.data
       if (babyList.length > 0) {
         babyCount.value = babyList.length
         babies.value = babyList.map(baby => ({

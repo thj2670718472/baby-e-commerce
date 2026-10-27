@@ -1,10 +1,10 @@
 // utils/request.js
-const BASE_URL = 'http://localhost:3000'; // Node.js 接口地址
+import { getApiBaseUrl } from '../config.js';
 
 // 构建 URL（处理 GET 请求的参数）
-const buildUrl = (url, params) => {
+const buildUrl = (baseUrl, url, params) => {
   if (!params || Object.keys(params).length === 0) {
-    return BASE_URL + url;
+    return baseUrl + url;
   }
   
   const queryString = Object.keys(params)
@@ -13,14 +13,16 @@ const buildUrl = (url, params) => {
     .join('&');
   
   if (!queryString) {
-    return BASE_URL + url;
+    return baseUrl + url;
   }
   
-  return BASE_URL + url + (url.includes('?') ? '&' : '?') + queryString;
+  return baseUrl + url + (url.includes('?') ? '&' : '?') + queryString;
 };
 
 // 请求拦截器
 const request = (options) => {
+  // 每次请求都重新读取，保证 setApiBaseUrl() 运行时切换立即生效
+  const BASE_URL = getApiBaseUrl();
   const token = uni.getStorageSync('token');
   
   let header = {
@@ -39,7 +41,7 @@ const request = (options) => {
   
   if (method === 'GET') {
     const params = options.params || options.data || {};
-    fullUrl = buildUrl(options.url, params);
+    fullUrl = buildUrl(BASE_URL, options.url, params);
   } else {
     fullUrl = BASE_URL + options.url;
     requestData = options.data || {};
@@ -60,7 +62,7 @@ const request = (options) => {
           uni.removeStorageSync('token');
           uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' });
           setTimeout(() => {
-            uni.reLaunch({ url: '/pages/Index/Index' });
+            uni.reLaunch({ url: '/pages/Login/Login' });
           }, 1500);
           reject(res);
         } else if (res.statusCode === 404) {

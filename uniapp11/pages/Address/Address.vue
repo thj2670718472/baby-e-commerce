@@ -202,8 +202,11 @@ onMounted(() => {
 
 <style scoped>
 .address-page {
-	min-height: 100vh;
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
 	background-color: #f5f5f5;
+	overflow: hidden;
 }
 
 .page-header {
@@ -211,10 +214,12 @@ onMounted(() => {
 	justify-content: space-between;
 	align-items: center;
 	padding: 30rpx;
+	padding-top: calc(var(--status-bar-height) + 30rpx);
 	background-color: #ffffff;
 	position: sticky;
 	top: 0;
 	z-index: 10;
+	flex-shrink: 0;
 }
 
 .header-back { font-size: 28rpx; color: #333; }
@@ -222,8 +227,10 @@ onMounted(() => {
 .header-add { font-size: 28rpx; color: #ff6b6b; font-weight: bold; }
 
 .address-list {
-	height: calc(100vh - 96rpx);
+	flex: 1;
+	height: 0;
 	padding: 20rpx;
+	box-sizing: border-box;
 }
 
 .loading-container {

@@ -31,7 +31,12 @@ module.exports = function(sequelize, DataTypes) {
     }
   }, {
     tableName: 'tb_user_draw_record',
-    timestamps: false
+    timestamps: false,
+    indexes: [{
+      name: 'uq_user_week_draw',
+      unique: true,
+      fields: ['userId', 'yearNumber', 'weekNumber']
+    }]
   });
   
   return { UserDrawRecord };
