@@ -224,6 +224,7 @@ onMounted(() => loadUserInfo())
   bottom: 200rpx;
   width: 90rpx;
   height: 90rpx;
+  padding: 0;
   background: linear-gradient(135deg, #667eea, #764ba2);
   border-radius: 50%;
   display: flex;

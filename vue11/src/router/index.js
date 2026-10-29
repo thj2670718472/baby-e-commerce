@@ -14,28 +14,12 @@ const routes = [
       requiresAuth: false 
     } 
   },
-  { 
-    path: '/register', 
-    name: 'Register', 
-    component: () => import('@/views/user/rigister.vue'), 
-    meta: { 
-      title: '注册', 
-      requiresAuth: false 
-    } 
-  },
-  {
-  path: '/main/chat',
-  name: 'ChatManage',
-  component: () => import('@/views/chat/index.vue'),
-  meta: { title: '问题咨询', icon: 'ChatDotRound' }
-
-  },
   {
     path: '/main',
     name: 'Main',
     component: () => import('@/layouts/MainLayout.vue'),
     redirect: '/main/dashboard',
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresAdmin: true },
     children: [ 
       {
         path: 'dashboard',
@@ -47,6 +31,17 @@ const routes = [
           requiresAuth: true 
         },
       },  
+      {
+        path: 'chat',
+        name: 'ChatManage',
+        component: () => import('@/views/chat/index.vue'),
+        meta: {
+          title: '问题咨询',
+          icon: 'ChatDotRound',
+          requiresAuth: true,
+          requiresAdmin: true
+        }
+      },
       {
         path: 'product/list',
         name: 'ProductList',
@@ -195,12 +190,10 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from) => {
-  const isLoggedIn = !!sessionStorage.getItem('user')
-  
-  // 判断是否为管理员
-  let isAdmin = false
+router.beforeEach((to) => {
   const userStr = sessionStorage.getItem('user')
+  const isLoggedIn = !!userStr && !!sessionStorage.getItem('token')
+  let isAdmin = false
   if (userStr) {
     try {
       const user = JSON.parse(userStr)
@@ -210,35 +203,32 @@ router.beforeEach((to, from) => {
     }
   }
   
-  if (to.path === '/') {
-    if (isLoggedIn) {
-      // 管理员跳转到仪表盘，普通用户跳转到商品列表
-      if (isAdmin) {
-        return { path: '/main/dashboard' }
-      } else {
-        return { path: '/main/product/list' }
-      }
-    } else {
-      return { path: '/login' }
-    }
+  if (to.path === '/login' && isLoggedIn && isAdmin) {
+    return { path: '/main/dashboard' }
   }
-  
-  // 普通用户访问仪表盘时，重定向到商品列表
-  if (to.path === '/main/dashboard' && isLoggedIn && !isAdmin) {
-    return { path: '/main/product/list' }
-  }
-  
-  if (!to.meta.requiresAuth) {
+
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const requiresAdmin = to.matched.some((record) => record.meta.requiresAdmin)
+  if (!requiresAuth) {
     return true
   }
-  
+
   if (!isLoggedIn) {
     return {
       path: '/login',
       query: { redirect: to.fullPath }
     }
   }
-  
+
+  if (requiresAdmin && !isAdmin) {
+    sessionStorage.removeItem('user')
+    sessionStorage.removeItem('token')
+    return {
+      path: '/login',
+      query: { reason: 'admin' }
+    }
+  }
+
   return true
 })
 

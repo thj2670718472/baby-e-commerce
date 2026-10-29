@@ -45,20 +45,6 @@ class UserAPI extends BaseAPI {
   // }
   // }
 
-  // 注册
-  async register(data) {
-    try {
-      const res = await this.post('/register', data)
-      if (res.code === 200) {
-        ElMessage.success('注册成功')
-      }
-      return res
-    } catch (error) {
-      ElMessage.error(error.message || '注册失败')
-      throw error
-    }
-  }
-  
   // 修改密码
   async changePassword(data) {
     try {

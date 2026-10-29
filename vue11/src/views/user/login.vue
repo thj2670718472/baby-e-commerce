@@ -14,8 +14,8 @@
         <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 text-white mb-4 shadow-lg">
           <el-icon :size="40"><Lock /></el-icon>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900 mb-2">欢迎回来</h2>
-        <p class="text-gray-500">请输入您的账号密码登录系统</p>
+        <h2 class="text-3xl font-bold text-gray-900 mb-2">管理后台</h2>
+        <p class="text-gray-500">请输入管理员账号和密码</p>
       </div>
 
       <!-- 登录表单卡片 -->
@@ -53,12 +53,6 @@
           </el-form-item>
         
 
-          <!-- 记住密码和忘记密码 -->
-          <div class="flex items-center justify-between mb-6">
-            <el-checkbox v-model="rememberPassword" size="large">记住密码</el-checkbox>
-            <el-link type="primary" underline="never" class="text-sm">忘记密码？</el-link>
-          </div>
-
           <!-- 登录按钮 -->
           <el-button
             type="primary"
@@ -70,19 +64,6 @@
             登 录
           </el-button>       
 
-          <!-- 注册链接 -->
-          <div class="text-center mt-6">
-            <el-button
-            type="primary"
-            size="large"
-            class="w-full !bg-gradient-to-r !from-blue-600 !to-purple-600 border-0 hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
-            @click="goToRegister"
-          >
-            注册新账号
-          </el-button> 
-            <!-- <span class="text-gray-500 text-sm">还没有账号？</span> -->
-            <!-- <el-link type="primary" underline="never" class="ml-1">立即注册</el-link> -->
-          </div>
         </el-form>
       </el-card>
 
@@ -101,7 +82,7 @@ const router = useRouter()
 import UserAPI  from '@/api/user'
 import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { User, Lock, ChatDotRound, Platform, Message } from '@element-plus/icons-vue'
+import { User, Lock } from '@element-plus/icons-vue'
 
 // 表单数据
 const formData = reactive({
@@ -112,7 +93,6 @@ const formData = reactive({
 // 表单引用
 const formRef = ref(null)
 const loading = ref(false)
-const rememberPassword = ref(false)
 
 // 表单验证规则
 const formRules = {
@@ -133,17 +113,16 @@ const handleSubmit = async () => {
   try {
     await formRef.value.validate()
     loading.value = true
-    console.log('test',formData)
-    // 模拟登录请求
-    //await new Promise(resolve => setTimeout(resolve, 1500))
-    let rtn= await UserAPI.login(formData)
-    console.log('rtn',rtn)
-    if (rtn.code==200){
-       ElMessage.success('登录成功！')
-       // 这里可以跳转到首页
-        router.push('/main')
-        //ElMessage.success('跳转到首页')
-    } 
+    const rtn = await UserAPI.login(formData)
+    if (rtn.code === 200 && rtn.data?.role === 'admin') {
+      ElMessage.success('登录成功！')
+      router.replace('/main/dashboard')
+      return
+    }
+
+    sessionStorage.removeItem('user')
+    sessionStorage.removeItem('token')
+    ElMessage.error('该账号没有管理员权限，请使用管理员账号登录')
     
   } catch (error) {
     if (error.message) {
@@ -152,11 +131,6 @@ const handleSubmit = async () => {
   } finally {
     loading.value = false
   }
-}
-
-// 跳转到注册页面
-const goToRegister = () => {
-  router.push('/register')
 }
 
 </script>

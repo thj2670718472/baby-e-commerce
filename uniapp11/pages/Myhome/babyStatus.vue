@@ -6,7 +6,7 @@
 			<text class="header-save" @click="handleSave">保存</text>
 		</view>
 		
-		<scroll-view class="content" scroll-y>
+		<view class="baby-content">
 			<view class="baby-count-section">
 				<text class="section-label">婴儿数量</text>
 				<view class="count-selector">
@@ -67,7 +67,7 @@
 					</view>
 				</view>
 			</view>
-		</scroll-view>
+		</view>
 	</view>
 </template>
 
@@ -197,11 +197,11 @@ onMounted(() => {
 .header-back { font-size: 28rpx; color: #333; }
 .header-title { font-size: 36rpx; font-weight: bold; color: #333; }
 .header-save { font-size: 28rpx; color: #ff6b6b; font-weight: bold; }
-.content { padding: 20rpx; }
+.baby-content { display: block; padding: 20rpx; }
 .baby-count-section { display: flex; justify-content: space-between; align-items: center; background-color: #fff; padding: 30rpx; border-radius: 16rpx; margin-bottom: 20rpx; }
 .section-label { font-size: 28rpx; color: #333; }
 .count-selector { display: flex; align-items: center; gap: 30rpx; }
-.count-btn { width: 60rpx; height: 60rpx; display: flex; align-items: center; justify-content: center; background-color: #f5f5f5; border-radius: 50%; font-size: 40rpx; color: #333; }
+.count-btn { width: 60rpx; height: 60rpx; padding: 0; display: flex; align-items: center; justify-content: center; background-color: #f5f5f5; border-radius: 50%; font-size: 40rpx; color: #333; }
 .count-btn.disabled { opacity: 0.3; }
 .count-num { font-size: 32rpx; font-weight: bold; color: #333; min-width: 40rpx; text-align: center; }
 .baby-form-item { background-color: #fff; border-radius: 16rpx; padding: 30rpx; margin-bottom: 20rpx; }

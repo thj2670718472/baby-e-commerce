@@ -439,7 +439,7 @@ onUnmounted(() => {
 .action-icon { font-size: 44rpx; }
 .input-wrapper { flex: 1; background-color: #f5f5f5; border-radius: 25rpx; padding: 10rpx 20rpx; max-height: 150rpx; }
 .message-textarea { width: 100%; min-height: 50rpx; max-height: 130rpx; font-size: 28rpx; color: #333; line-height: 1.4; padding: 5rpx 0; }
-.send-btn { width: 120rpx; height: 70rpx; background-color: #ff6b6b; color: #fff; font-size: 28rpx; border-radius: 35rpx; margin-left: 15rpx; border: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-bottom: 5rpx; }
+.send-btn { width: 120rpx; height: 70rpx; padding: 0; background-color: #ff6b6b; color: #fff; font-size: 28rpx; border-radius: 35rpx; margin-left: 15rpx; border: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-bottom: 5rpx; white-space: nowrap; }
 .send-btn[disabled] { opacity: 0.5; }
 
 .preview-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; }

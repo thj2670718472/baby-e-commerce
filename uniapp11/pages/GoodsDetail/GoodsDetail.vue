@@ -476,9 +476,9 @@ onLoad((options) => { goodsId.value = options.id; loadDiscountStatus(); loadGood
 .bottom-text.favorited { color: #ff6b6b; }
 .bottom-right { flex: 1; display: flex; align-items: center; gap: 15rpx; justify-content: flex-end; }
 .quantity-control { display: flex; align-items: center; gap: 15rpx; }
-.quantity-btn { width: 48rpx; height: 48rpx; display: flex; align-items: center; justify-content: center; border: 2rpx solid #ddd; border-radius: 8rpx; font-size: 32rpx; color: #666; background-color: #fff; }
+.quantity-btn { width: 48rpx; height: 48rpx; padding: 0; display: flex; align-items: center; justify-content: center; border: 2rpx solid #ddd; border-radius: 8rpx; font-size: 32rpx; color: #666; background-color: #fff; }
 .quantity-num { font-size: 28rpx; color: #333; min-width: 40rpx; text-align: center; }
-.buy-btn { width: 160rpx; height: 70rpx; font-size: 26rpx; font-weight: bold; border-radius: 35rpx; border: none; }
+.buy-btn { width: 160rpx; height: 70rpx; padding: 0; font-size: 26rpx; font-weight: bold; border-radius: 35rpx; border: none; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
 .buy-btn.confirm { background-color: #ffb800; color: #fff; }
 .buy-btn.pay { background-color: #ff6b6b; color: #fff; }
 .buy-btn[disabled] { opacity: 0.5; }

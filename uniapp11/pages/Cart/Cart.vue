@@ -211,7 +211,7 @@ onMounted(() => { loadDiscountStatus(); loadCartList() })
 .original-price { font-size: 22rpx; color: #999; text-decoration: line-through; }
 
 .quantity-control { display: flex; align-items: center; gap: 10rpx; flex-shrink: 0; }
-.quantity-btn { width: 44rpx; height: 44rpx; border: 2rpx solid #ddd; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: #666; }
+.quantity-btn { width: 44rpx; height: 44rpx; padding: 0; border: 2rpx solid #ddd; border-radius: 8rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: #666; }
 .quantity-num { font-size: 26rpx; min-width: 36rpx; text-align: center; }
 
 .empty-container { display: flex; flex-direction: column; align-items: center; padding: 150rpx 0; }

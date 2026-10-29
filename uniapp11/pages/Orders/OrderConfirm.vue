@@ -424,6 +424,7 @@ onLoad((options) => {
 .quantity-btn {
 	width: 48rpx;
 	height: 48rpx;
+	padding: 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;

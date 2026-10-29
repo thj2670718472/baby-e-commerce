@@ -47,3 +47,44 @@ test('小数金额正确累加', async () => {
   const res = await request(app).get('/dashboard/statistics').set(auth(adminToken));
   expect(res.body.totalSales).toBe(468.5);
 });
+
+test('普通用户访问趋势接口返回 403', async () => {
+  const res = await request(app).get('/dashboard/trend').set(auth(token));
+  expect(res.status).toBe(403);
+});
+
+test('趋势接口返回近 7 天、按日期升序且无订单的日期补 0', async () => {
+  const res = await request(app).get('/dashboard/trend').set(auth(adminToken));
+  expect(res.status).toBe(200);
+  expect(res.body.code).toBe(200);
+
+  const { list, today } = res.body.data;
+  expect(list).toHaveLength(7);
+
+  const dates = list.map((item) => item.date);
+  // 严格升序，且最后一天是今天
+  expect([...dates].sort()).toEqual(dates);
+
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, '0');
+  const todayKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  expect(dates[6]).toBe(todayKey);
+  expect(today.date).toBe(todayKey);
+
+  list.forEach((item) => {
+    expect(typeof item.sales).toBe('number');
+    expect(typeof item.orders).toBe('number');
+    expect(item.sales).toBeGreaterThanOrEqual(0);
+    expect(item.label).toMatch(/^\d{2}-\d{2}$/);
+  });
+
+  // 本文件前面的用例已经产生已完成订单，今天的销售额与订单数应大于 0
+  expect(today.sales).toBeGreaterThan(0);
+  expect(today.orders).toBeGreaterThan(0);
+});
+
+test('趋势接口天数上限为 30 天', async () => {
+  const res = await request(app).get('/dashboard/trend?days=999').set(auth(adminToken));
+  expect(res.body.data.days).toBe(30);
+  expect(res.body.data.list).toHaveLength(30);
+});

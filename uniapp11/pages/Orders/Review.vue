@@ -286,7 +286,7 @@ onLoad(async (options) => {
 .image-item { width: 140rpx; height: 140rpx; border-radius: 12rpx; position: relative; }
 .uploaded-image { width: 100%; height: 100%; border-radius: 12rpx; }
 .delete-image { position: absolute; top: -10rpx; right: -10rpx; width: 36rpx; height: 36rpx; background-color: #ff6b6b; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 24rpx; }
-.upload-btn { width: 140rpx; height: 140rpx; border: 2rpx dashed #ddd; border-radius: 12rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f9f9f9; }
+.upload-btn { width: 140rpx; height: 140rpx; padding: 0; border: 2rpx dashed #ddd; border-radius: 12rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f9f9f9; }
 .upload-icon { font-size: 48rpx; color: #ccc; }
 .upload-text { font-size: 20rpx; color: #ccc; margin-top: 4rpx; }
 .upload-tip { font-size: 22rpx; color: #ccc; margin-top: 10rpx; }

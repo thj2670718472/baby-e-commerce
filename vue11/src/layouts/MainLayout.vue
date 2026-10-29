@@ -13,77 +13,58 @@
         :collapse-transition="false"
         router
       >
-        <!-- 管理员可见的菜单 -->
-        <template v-if="isAdmin">
-          <el-menu-item index="/main/dashboard">
-            <el-icon><Odometer /></el-icon>
-            <span>仪表盘</span>
-          </el-menu-item>
-          <el-menu-item index="/main/chat">
-            <el-icon><ChatDotRound /></el-icon>
-            <span>问题咨询</span>
-          </el-menu-item>
-          
-          <el-sub-menu index="/main/product">
-            <template #title>
-              <el-icon><Goods /></el-icon>
-              <span>商品管理</span>
-            </template>
-            <el-menu-item index="/main/product/list">商品列表</el-menu-item>
-            <el-menu-item index="/main/product/category">商品分类</el-menu-item>
-          </el-sub-menu>
-          
-          <el-menu-item index="/main/order">
-            <el-icon><List /></el-icon>
-            <span>订单管理</span>
-          </el-menu-item>
-          
-          <el-menu-item index="/main/user">
-            <el-icon><User /></el-icon>
-            <span>用户管理</span>
-          </el-menu-item>
-          
-          <el-menu-item index="/main/review">
-            <el-icon><ChatDotSquare /></el-icon>
-            <span>评价管理</span>
-          </el-menu-item>
-          
-          <el-menu-item index="/main/baby-culture">
-            <el-icon><Reading /></el-icon>
-            <span>婴儿培养</span>
-          </el-menu-item>
+        <el-menu-item index="/main/dashboard">
+          <el-icon><Odometer /></el-icon>
+          <span>仪表盘</span>
+        </el-menu-item>
+        <el-menu-item index="/main/chat">
+          <el-icon><ChatDotRound /></el-icon>
+          <span>问题咨询</span>
+        </el-menu-item>
 
-          <el-menu-item index="/main/points">
-            <el-icon><Coin /></el-icon>
-            <span>积分商城</span>
-          </el-menu-item>
-
-          <el-menu-item index="/main/coupon">
-            <el-icon><Ticket /></el-icon>
-            <span>优惠券管理</span>
-          </el-menu-item>
-
-          <el-menu-item index="/main/seckill">
-            <el-icon><AlarmClock /></el-icon>
-            <span>秒杀管理</span>
-          </el-menu-item>
-        </template>
-        
-        <!-- 普通用户可见的菜单 -->
-        <template v-else>
-          <el-menu-item index="/main/product/list">
+        <el-sub-menu index="/main/product">
+          <template #title>
             <el-icon><Goods /></el-icon>
-            <span>商品列表</span>
-          </el-menu-item>
-          <el-menu-item index="/main/order">
-            <el-icon><List /></el-icon>
-            <span>我的订单</span>
-          </el-menu-item>
-          <el-menu-item index="/main/baby-culture">
-            <el-icon><Reading /></el-icon>
-            <span>婴儿培养</span>
-          </el-menu-item>
-        </template>
+            <span>商品管理</span>
+          </template>
+          <el-menu-item index="/main/product/list">商品列表</el-menu-item>
+          <el-menu-item index="/main/product/category">商品分类</el-menu-item>
+        </el-sub-menu>
+
+        <el-menu-item index="/main/order">
+          <el-icon><List /></el-icon>
+          <span>订单管理</span>
+        </el-menu-item>
+
+        <el-menu-item index="/main/user">
+          <el-icon><User /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
+
+        <el-menu-item index="/main/review">
+          <el-icon><ChatDotSquare /></el-icon>
+          <span>评价管理</span>
+        </el-menu-item>
+
+        <el-menu-item index="/main/baby-culture">
+          <el-icon><Reading /></el-icon>
+          <span>婴儿培养</span>
+        </el-menu-item>
+
+        <el-menu-item index="/main/points">
+          <el-icon><Coin /></el-icon>
+          <span>积分商城</span>
+        </el-menu-item>
+
+        <el-menu-item index="/main/coupon">
+          <el-icon><Ticket /></el-icon>
+          <span>优惠券管理</span>
+        </el-menu-item>
+
+        <el-menu-item index="/main/seckill">
+          <el-icon><AlarmClock /></el-icon>
+          <span>秒杀管理</span>
+        </el-menu-item>
       </el-menu>
       
       <div class="collapse-btn" @click="toggleCollapse">
@@ -113,8 +94,6 @@
             <template #dropdown>
               <el-dropdown-menu>
               <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-              <el-dropdown-item command="babyStatus" v-if="!isAdmin">婴儿状况</el-dropdown-item>
-              <el-dropdown-item command="address" v-if="!isAdmin">地址管理</el-dropdown-item>
               <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
               <el-dropdown-item command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
@@ -175,21 +154,6 @@ const username = computed(() => {
   return '管理员'
 })
 
-// 判断是否为管理员
-const isAdmin = computed(() => {
-  const userStr = sessionStorage.getItem('user')
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr)
-      return user.role === 'admin'
-    } catch (e) {
-      console.error('解析用户信息失败:', e)
-      return false
-    }
-  }
-  return false
-})
-
 // 切换菜单折叠
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
@@ -201,10 +165,6 @@ const handleCommand = (command) => {
     handleLogout()
   } else if (command === 'profile') {
     router.push('/main/user/profile')
-  } else if (command === 'babyStatus') {
-    router.push('/main/user/baby-status')
-  } else if (command === 'address') {
-    router.push('/main/user/address')
   } else if (command === 'changePassword') {
     router.push('/main/user/change-password')
   }

@@ -158,6 +158,6 @@ const navigateBack = () => uni.navigateBack()
 
 .input-bar { display: flex; padding: 15rpx 20rpx; background-color: #fff; gap: 15rpx; align-items: center; padding-bottom: calc(15rpx + env(safe-area-inset-bottom)); }
 .input-field { flex: 1; height: 60rpx; padding: 0 15rpx; background-color: #f5f5f5; border-radius: 30rpx; font-size: 26rpx; }
-.send-btn { width: 100rpx; height: 60rpx; background-color: #ff6b6b; color: #fff; border-radius: 30rpx; font-size: 26rpx; border: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.send-btn { width: 100rpx; height: 60rpx; padding: 0; margin: 0; background-color: #ff6b6b; color: #fff; border-radius: 30rpx; font-size: 26rpx; line-height: 60rpx; white-space: nowrap; border: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .send-btn[disabled] { opacity: 0.5; }
 </style>

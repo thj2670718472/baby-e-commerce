@@ -480,7 +480,7 @@ onShow(() => {
 .modal-value.highlight { font-size: 34rpx; color: #ff6b6b; font-weight: bold; }
 .modal-tip { display: block; margin-top: 16rpx; font-size: 21rpx; color: #aaa; line-height: 1.6; }
 .qty-control { display: flex; align-items: center; }
-.qty-btn { width: 54rpx; height: 54rpx; line-height: 50rpx; text-align: center; border: 1rpx solid #ddd; border-radius: 10rpx; font-size: 32rpx; color: #666; }
+.qty-btn { width: 54rpx; height: 54rpx; padding: 0; line-height: 50rpx; text-align: center; border: 1rpx solid #ddd; border-radius: 10rpx; font-size: 32rpx; color: #666; }
 .qty-btn.disabled { opacity: 0.35; }
 .qty-value { min-width: 72rpx; text-align: center; font-size: 28rpx; color: #333; }
 .modal-actions { display: flex; gap: 20rpx; margin-top: 28rpx; }

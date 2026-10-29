@@ -8,7 +8,7 @@
 		</view>
 		
 		<!-- 地址表单 -->
-		<scroll-view class="address-form" scroll-y>
+		<view class="address-form">
 			<view class="form-item">
 				<text class="form-label">收货人</text>
 				<input 
@@ -75,7 +75,7 @@
 					<view :class="['checkbox-inner', addressForm.isDefault ? 'checked' : '']"></view>
 				</view>
 			</view>
-		</scroll-view>
+		</view>
 	</view>
 </template>
 
